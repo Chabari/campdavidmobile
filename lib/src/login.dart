@@ -23,10 +23,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordCOntroller = TextEditingController();
   bool obscure = true;
   late ArsProgressDialog progressDialog;
+  late FToast fToast;
   final _formKey = GlobalKey<FormState>();
   late SharedPreferences mprefs;
 
-  late FToast fToast;
   bool isObscure = true;
 
   @override
@@ -82,6 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
             mpref.setString("call_phone", json1['call_phone']);
             mpref.setString("support_email", json1['support_email']);
             mpref.setString("orders", json1['orders'].toString());
+            mpref.setBool('isFirst', false);
           });
           if (mounted) {
             _showToast(fToast, json1['message'], Colors.green, Icons.check);

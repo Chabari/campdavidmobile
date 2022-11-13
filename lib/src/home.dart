@@ -122,7 +122,6 @@ class _HomeState extends State<Home> {
 
   String getimage(String url) {
     if (url.contains('public')) {
-
       return url.replaceFirst(RegExp('public/'), '');
     }
     return url;
@@ -722,6 +721,8 @@ class _HomeState extends State<Home> {
                                                                                 .white,
                                                                         fontSize:
                                                                             16.0);
+                                                                    Navigator.pop(
+                                                                        context);
                                                                   } else {
                                                                     OrderItemsModel item = OrderItemsModel(
                                                                         amount: productslists[index]
@@ -781,6 +782,9 @@ class _HomeState extends State<Home> {
                                                                               .fetch(true);
                                                                         });
                                                                       });
+
+                                                                    Navigator.pop(
+                                                                        context);
                                                                     });
                                                                   }
                                                                 });

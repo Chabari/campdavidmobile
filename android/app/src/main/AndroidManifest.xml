@@ -9,7 +9,7 @@
     
    <application
         android:usesCleartextTraffic="true"
-        android:label="campdavid"
+        android:label="Camp David Butchery"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity

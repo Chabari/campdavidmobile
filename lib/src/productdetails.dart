@@ -744,93 +744,109 @@ class _ProductDetailsState extends State<ProductDetails> {
                                   ),
                                   margin: const EdgeInsets.all(6),
                                   elevation: 3,
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        height: 90,
-                                        width: 90,
-                                        decoration: BoxDecoration(
-                                            image: DecorationImage(
-                                                image: NetworkImage(imageUrl +
+                                  child: InkWell(
+                                    onTap: () {
+                                      Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                ProductDetails(
+                                                    productList: categoryList!
+                                                        .productslists[index]),
+                                          ));
+                                    },
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          height: 90,
+                                          width: 90,
+                                          decoration: BoxDecoration(
+                                              image: DecorationImage(
+                                                  image: NetworkImage(imageUrl +
+                                                      categoryList!
+                                                          .productslists[index]
+                                                          .photo))),
+                                        ),
+                                        Expanded(
+                                            child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 4.0),
+                                              child: Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      categoryList!
+                                                          .productslists[index]
+                                                          .name,
+                                                      style: GoogleFonts
+                                                          .montserrat(
+                                                              fontSize: 18,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(
+                                                    width: 8,
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 4.0),
+                                              child: Row(
+                                                children: [
+                                                  Text(
                                                     categoryList!
                                                         .productslists[index]
-                                                        .photo))),
-                                      ),
-                                      Expanded(
-                                          child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                left: 4.0),
-                                            child: Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    categoryList!
-                                                        .productslists[index]
+                                                        .category
                                                         .name,
                                                     style:
                                                         GoogleFonts.montserrat(
+                                                            fontSize: 12,
+                                                            color: Colors.grey),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 4.0),
+                                              child: Row(
+                                                children: [
+                                                  Text(
+                                                    " Ksh",
+                                                    style:
+                                                        GoogleFonts.montserrat(
+                                                            fontSize: 12,
+                                                            color: Colors.grey),
+                                                  ),
+                                                  Text(
+                                                    categoryList!
+                                                        .productslists[index]
+                                                        .sellingPrice,
+                                                    style:
+                                                        GoogleFonts.montserrat(
                                                             fontSize: 18,
+                                                            color: primaryColor,
                                                             fontWeight:
                                                                 FontWeight
                                                                     .bold),
                                                   ),
-                                                ),
-                                                const SizedBox(
-                                                  width: 8,
-                                                )
-                                              ],
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                left: 4.0),
-                                            child: Row(
-                                              children: [
-                                                Text(
-                                                  categoryList!
-                                                      .productslists[index]
-                                                      .category
-                                                      .name,
-                                                  style: GoogleFonts.montserrat(
-                                                      fontSize: 12,
-                                                      color: Colors.grey),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                left: 4.0),
-                                            child: Row(
-                                              children: [
-                                                Text(
-                                                  " Ksh",
-                                                  style: GoogleFonts.montserrat(
-                                                      fontSize: 12,
-                                                      color: Colors.grey),
-                                                ),
-                                                Text(
-                                                  categoryList!
-                                                      .productslists[index]
-                                                      .sellingPrice,
-                                                  style: GoogleFonts.montserrat(
-                                                      fontSize: 18,
-                                                      color: primaryColor,
-                                                      fontWeight:
-                                                          FontWeight.bold),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ))
-                                    ],
+                                          ],
+                                        ))
+                                      ],
+                                    ),
                                   ),
                                 ),
                               )
@@ -911,14 +927,15 @@ class _ProductDetailsState extends State<ProductDetails> {
                                   );
                                   _db.newCart(item).then((value) {
                                     if (isLogged) {
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => CheckOutPage(),
-                                        ));
-                                  } else {
-                                    _onAlertButtonsPressed(context);
-                                  }
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                CheckOutPage(),
+                                          ));
+                                    } else {
+                                      _onAlertButtonsPressed(context);
+                                    }
                                   });
                                 }
                               });

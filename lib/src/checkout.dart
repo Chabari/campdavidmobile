@@ -217,7 +217,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
             Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => OrderSuccess(),
+                  builder: (context) => OrderSuccess(order_number: json1['order_number']),
                 ));
           });
           _showToast(json1['message'], Icons.check, Colors.green);
@@ -566,7 +566,6 @@ class _CheckOutPageState extends State<CheckOutPage> {
                       style: GoogleFonts.montserrat(
                         fontSize: 18,
                       ),
-                      maxLength: 10,
                       onChanged: (value) {},
                       maxLines: 3,
                       controller: _descEditingController,

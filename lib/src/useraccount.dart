@@ -475,11 +475,13 @@ class _UserAccountState extends State<UserAccount> {
                     width: 150,
                     child: InkWell(
                       onTap: () {
-                        Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LoginScreen(from: "main"),
-                            ));
+                         mprefs.clear().then((value) {
+                                    Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => LoginScreen(from: "me"),
+                                    ));
+                                  });
                       },
                       child: Card(
                         shape: RoundedRectangleBorder(

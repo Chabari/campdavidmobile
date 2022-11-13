@@ -21,6 +21,9 @@ const kGoogleApiKey = "AIzaSyCUwQCkzVToSTN9PCH2KKuIO9MjCBzS1as";
 const mainUrl = "https://campdavid.silverbridge.co.ke/api/";
 const imageUrl = "https://campdavid.silverbridge.co.ke/storage/";
 
+// const mainUrl = "http://192.168.0.105/campdavidbackend/public/api/";
+// const imageUrl = "http://192.168.0.105/campdavidbackend/storage/";
+
 const kAnimationDuration = Duration(milliseconds: 200);
 
 double getHeight(context) {
@@ -33,13 +36,11 @@ double getWidth(context) {
 
 String getdatedate(DateTime dat) {
   String formated = DateFormat('dd-MM-yyyy').format(dat).toString();
-
   return formated;
 }
 
 String getdatedatetime(DateTime dat) {
   String formated = DateFormat('dd-MM-yyyy HH:mm a').format(dat).toString();
-
   return formated;
 }
 

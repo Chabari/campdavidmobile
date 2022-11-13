@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/helpers/orderlist.dart';
 import 'package:campdavid/src/orderdetails.dart';
@@ -18,10 +20,13 @@ class _OrdersPageState extends State<OrdersPage> {
   int selected = 0;
 
   List<OrderList> ordersList = [];
+  List<OrderList> filteredordersList = [];
   final DBHelper _db = DBHelper();
   late FToast fToast;
   String token = "";
   double total = 0;
+  int pending = 0;
+  int delivered = 0;
 
   @override
   void initState() {
@@ -36,11 +41,25 @@ class _OrdersPageState extends State<OrdersPage> {
           token = value.getString('token')!;
           fetchorders().then((value) {
             setState(() {
-              ordersList.addAll(value);
+              ordersList = value;
               gettotals();
+              filterorders();
             });
           });
         });
+      }
+    });
+
+    Timer.periodic(const Duration(seconds: 20), (Timer timer) {
+      if (mounted) {
+        
+        fetchorders().then((value) {
+            setState(() {
+              ordersList = value;
+              gettotals();
+              filterorders();
+            });
+          });
       }
     });
   }
@@ -52,14 +71,54 @@ class _OrdersPageState extends State<OrdersPage> {
       'Accept': 'application/json',
       'Authorization': 'Bearer $token',
     });
+    print(res.body);
     return orderListFromJson(res.body);
   }
 
   void gettotals() {
+    total = 0;
+    delivered = 0;
+    pending = 0;
     ordersList.forEach((element) {
+      if (element.status == "Delivered") {
+        setState(() {
+          delivered++;
+        });
+      } else {
+        setState(() {
+          pending++;
+        });
+      }
       setState(() {
-        total += double.parse(element.total);
+        total += double.parse(element.order_amount);
       });
+    });
+  }
+
+  void filterorders() {
+    filteredordersList.clear();
+    ordersList.forEach((element) {
+      switch (selected) {
+        case 0:
+          if (element.status != "Delivered") {
+            setState(() {
+              filteredordersList.add(element);
+            });
+          }
+          break;
+        case 1:
+          if (element.status == "Delivered") {
+            setState(() {
+              filteredordersList.add(element);
+            });
+          }
+          break;
+        case 2:
+          setState(() {
+            filteredordersList.add(element);
+          });
+          break;
+      }
     });
   }
 
@@ -187,7 +246,7 @@ class _OrdersPageState extends State<OrdersPage> {
                     child: Column(
                   children: [
                     Text(
-                      ordersList.length.toString(),
+                      pending.toString(),
                       style: GoogleFonts.montserrat(
                           color: Colors.white, fontSize: 25),
                     ),
@@ -202,7 +261,7 @@ class _OrdersPageState extends State<OrdersPage> {
                     child: Column(
                   children: [
                     Text(
-                      "0",
+                      delivered.toString(),
                       style: GoogleFonts.montserrat(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -246,6 +305,7 @@ class _OrdersPageState extends State<OrdersPage> {
                             onTap: () {
                               setState(() {
                                 selected = 0;
+                                filterorders();
                               });
                             },
                             child: Padding(
@@ -273,6 +333,7 @@ class _OrdersPageState extends State<OrdersPage> {
                             onTap: () {
                               setState(() {
                                 selected = 1;
+                                filterorders();
                               });
                             },
                             child: Padding(
@@ -300,6 +361,7 @@ class _OrdersPageState extends State<OrdersPage> {
                             onTap: () {
                               setState(() {
                                 selected = 2;
+                                filterorders();
                               });
                             },
                             child: Padding(
@@ -323,140 +385,180 @@ class _OrdersPageState extends State<OrdersPage> {
                     const SizedBox(
                       height: 20,
                     ),
-                    if(selected == 0 || selected == 2)
+                    if (selected == 0 || selected == 2)
                       ListView.builder(
                         itemCount: ordersList.length,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemBuilder: (context, index) => Card(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
-                        elevation: 3,
-                        margin: const EdgeInsets.all(8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Order Code",
-                                style: GoogleFonts.montserrat(
-                                    fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                              Text(
-                                "#${ordersList[index].orderNumber}",
-                                style: GoogleFonts.montserrat(
-                                    fontWeight: FontWeight.bold,
-                                    color: primaryColor,
-                                    fontSize: 20),
-                              ),
-                              const SizedBox(
-                                height: 4,
-                              ),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      getdatedatetime(ordersList[index].createdAt),
-                                      style: GoogleFonts.montserrat(
-                                          color: Colors.grey, fontSize: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20)),
+                          elevation: 3,
+                          margin: const EdgeInsets.all(8),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            "Order Number",
+                                            style: GoogleFonts.montserrat(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          Text(
+                                            "#${ordersList[index].orderNumber}",
+                                            style: GoogleFonts.montserrat(
+                                                fontWeight: FontWeight.bold,
+                                                color: primaryColor,
+                                                fontSize: 20),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  Text(
-                                    "Ksh ${ordersList[index].total}",
-                                    style: GoogleFonts.montserrat(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 20),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(
-                                height: 8,
-                              ),
-                              Text(
-                                "Payment",
-                                style: GoogleFonts.montserrat(fontSize: 14),
-                              ),
-                              Row(
-                                children: [
-                                  Text(
-                                    ordersList[index].paymentMethod,
-                                    style: GoogleFonts.montserrat(fontSize: 16),
-                                  ),
-                                  Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: primaryColor),
-                                      child: const Icon(
-                                        Icons.cancel_rounded,
-                                        color: Colors.white,
-                                        size: 20,
-                                      )),
-                                ],
-                              ),
-                              const SizedBox(
-                                height: 8,
-                              ),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: InkWell(
-                                      onTap: () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => OrderDetails(orderlist: ordersList[index]),
-                                          )),
-                                      child: Card(
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                            side: const BorderSide(
-                                                color: Colors.black)),
-                                        elevation: 3,
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(15.0),
-                                          child: Center(
-                                            child: Text(
-                                              "View Details",
-                                              style: GoogleFonts.montserrat(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            "Order Code",
+                                            style: GoogleFonts.montserrat(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          Text(
+                                            ordersList[index].customer_code,
+                                            style: GoogleFonts.montserrat(
+                                                fontSize: 20,
+                                                color: primaryColor,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  height: 4,
+                                ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        getdatedatetime(
+                                            ordersList[index].createdAt),
+                                        style: GoogleFonts.montserrat(
+                                            color: Colors.grey, fontSize: 14),
+                                      ),
+                                    ),
+                                    Text(
+                                      "Ksh ${ordersList[index].order_amount}",
+                                      style: GoogleFonts.montserrat(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  height: 8,
+                                ),
+                                Text(
+                                  "Payment",
+                                  style: GoogleFonts.montserrat(fontSize: 14),
+                                ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      ordersList[index].paymentMethod,
+                                      style:
+                                          GoogleFonts.montserrat(fontSize: 16),
+                                    ),
+                                    Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: primaryColor),
+                                        child: const Icon(
+                                          Icons.cancel_rounded,
+                                          color: Colors.white,
+                                          size: 20,
+                                        )),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  height: 8,
+                                ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: InkWell(
+                                        onTap: () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  OrderDetails(
+                                                      orderlist:
+                                                          ordersList[index]),
+                                            )),
+                                        child: Card(
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                              side: const BorderSide(
+                                                  color: Colors.black)),
+                                          elevation: 3,
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(15.0),
+                                            child: Center(
+                                              child: Text(
+                                                "View Details",
+                                                style: GoogleFonts.montserrat(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 14),
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  Expanded(
-                                    child: Card(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      color: primaryColor,
-                                      elevation: 3,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(15.0),
-                                        child: Center(
-                                          child: Text(
-                                            ordersList[index].status,
-                                            style: GoogleFonts.montserrat(
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                                fontSize: 14),
+                                    Expanded(
+                                      child: Card(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        color: primaryColor,
+                                        elevation: 3,
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(15.0),
+                                          child: Center(
+                                            child: Text(
+                                              ordersList[index].status,
+                                              style: GoogleFonts.montserrat(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                  fontSize: 14),
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  )
-                                ],
-                              )
-                            ],
+                                    )
+                                  ],
+                                )
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  const SizedBox(
+                    const SizedBox(
                       height: 20,
                     ),
                   ],

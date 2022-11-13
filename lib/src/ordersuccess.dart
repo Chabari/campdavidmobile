@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class OrderSuccess extends StatefulWidget {
+  String order_number;
+  OrderSuccess({required this.order_number});
   _OrderSuccessState createState() => _OrderSuccessState();
 }
 
@@ -18,9 +20,9 @@ class _OrderSuccessState extends State<OrderSuccess> {
         width: getWidth(context),
         child: SafeArea(
             child: Container(
-              color: primaryColor,
-              child: Column(
-          children: [
+          color: primaryColor,
+          child: Column(
+            children: [
               Expanded(
                   child: Container(
                 decoration: const BoxDecoration(
@@ -30,17 +32,18 @@ class _OrderSuccessState extends State<OrderSuccess> {
                         bottomRight: Radius.circular(32))),
                 child: Column(
                   children: [
-                    const SizedBox(height: 50,),
+                    const SizedBox(
+                      height: 50,
+                    ),
                     SizedBox(
                       width: getWidth(context),
                       child: Image.asset(
-                          "assets/images/success.gif",
-                          height: 250.0,
-                          width: 250.0,
-                        ),
+                        "assets/images/success.gif",
+                        height: 250.0,
+                        width: 250.0,
+                      ),
                     ),
-
-                     Text(
+                    Text(
                       "Awesome!",
                       style: GoogleFonts.montserrat(
                         fontWeight: FontWeight.bold,
@@ -52,19 +55,16 @@ class _OrderSuccessState extends State<OrderSuccess> {
                       textAlign: TextAlign.center,
                       style: GoogleFonts.montserrat(
                         fontSize: 25,
-                        
                       ),
                     ),
-                    const SizedBox(height: 20,),
-
+                    const SizedBox(
+                      height: 20,
+                    ),
                     Text(
                       "Manage your orders in the orders page",
                       style: GoogleFonts.montserrat(
-                        fontSize: 14,
-                        color: Colors.grey
-                      ),
+                          fontSize: 14, color: Colors.grey),
                     ),
-
                   ],
                 ),
               )),
@@ -73,22 +73,22 @@ class _OrderSuccessState extends State<OrderSuccess> {
                 width: getWidth(context),
                 child: Column(
                   children: [
-                    const SizedBox(height: 20,),
+                    const SizedBox(
+                      height: 20,
+                    ),
                     Text(
                       "Your order number is",
                       style: GoogleFonts.montserrat(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: Colors.white70
-                      ),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Colors.white70),
                     ),
                     Text(
-                      "#2746833",
+                      "#${widget.order_number}",
                       style: GoogleFonts.montserrat(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 30,
-                        color: Colors.white
-                      ),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 30,
+                          color: Colors.white),
                     ),
                     const SizedBox(
                       height: 20,
@@ -119,7 +119,7 @@ class _OrderSuccessState extends State<OrderSuccess> {
                                   style: GoogleFonts.montserrat(
                                     color: primaryColor,
                                     fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
@@ -131,9 +131,9 @@ class _OrderSuccessState extends State<OrderSuccess> {
                   ],
                 ),
               )
-          ],
-        ),
-            )),
+            ],
+          ),
+        )),
       ),
     );
   }
