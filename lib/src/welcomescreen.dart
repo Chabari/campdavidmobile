@@ -14,26 +14,27 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   int currentIndex = 0;
-  final PageController _pageController = PageController(initialPage: 0);
+  final PageController _pageController = PageController(initialPage: 0,);
 
   List<AllinOnboardModel> allinonboardlist = [
     AllinOnboardModel(
         "assets/images/designf.jpg",
-        "There are many variations of passages of Lorem Ipsum available. All the Lorem Ipsum generators on the Internet tend to repeat predefined chunks as necessary",
+        "Welcome to Camp David Butchery. We offer premium quality meat, our first priority to our customers. It has already stood the test of time! Butchery is the art of selecting, slaughtering, deboning, cutting and preparing meat and as Camp David butchery we have worked on perfecting this art to serve our customers in the best way possible.",
         "Prepard by exparts"),
     AllinOnboardModel(
         "assets/images/designs.jpg",
-        "There are many variations of passages of Lorem Ipsum available. All the Lorem Ipsum generators on the Internet tend to repeat predefined chunks as necessary",
-        "Delivery to your home"),
+        "This technique is used to extend the timeliness of the fresh meat but still maintaining its quality under storage.All our deliveries are sealed to our customers desires in terms of portions for easy storage, hygiene, maintaining meat taste while avoiding food poisoning and fridge burns. Make your order, instruct us how we should package your meat and let us do the magic .",
+        "Vacuum packaging meat"),
     AllinOnboardModel(
         "assets/images/designt.jpg",
-        "There are many variations of passages of Lorem Ipsum available. All the Lorem Ipsum generators on the Internet tend to repeat predefined chunks as necessary",
-        "Enjoy with everyone"),
+        "Shop online and get it delivered to your door step. We serve nothing but the best.Online deliveries are one of the ways technology has served us in this digital era.With just a few clicks, you make your order, and have it delivered to your desired location.",
+        "Delivery"),
   ];
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    
     SharedPreferences.getInstance().then((value) {
       value.setBool('isFirst', false);
     });
@@ -67,7 +68,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       imgurl: allinonboardlist[index].imgStr);
                 }),
             Positioned(
-              bottom: MediaQuery.of(context).size.height * 0.26,
+              bottom: MediaQuery.of(context).size.height * 0.10,
               left: MediaQuery.of(context).size.width * 0.44,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -79,7 +80,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             ),
             currentIndex < allinonboardlist.length - 1
                 ? Positioned(
-                    bottom: MediaQuery.of(context).size.height * 0.15,
+                    bottom: MediaQuery.of(context).size.height * 0.07,
                     width: MediaQuery.of(context).size.width,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -150,11 +151,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     left: MediaQuery.of(context).size.width * 0.33,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => MainPanel(),
-                            ));
+                       Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => MainPanel(),
+                                  ));
                       },
                       child: Text(
                         "Get Started",

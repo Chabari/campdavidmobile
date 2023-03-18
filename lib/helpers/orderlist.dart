@@ -8,31 +8,36 @@ List<OrderList> orderListFromJson(String str) =>
     List<OrderList>.from(json.decode(str).map((x) => OrderList.fromJson(x)));
 
 class OrderList {
-  OrderList({
-    required this.id,
-    required this.orderNumber,
-    required this.notes,
-    required this.deliveryLocation,
-    required this.landmark,
-    required this.paymentMethod,
-    required this.deliveryFee,
-    required this.status,
-    required this.isPaid,
-    required this.total,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.longitude,
-    required this.driver,
-    required this.driver_phone,
-    required this.customer_code,
-    required this.latitude,
-    required this.order_amount,
-    required this.seller,
-    required this.orderItems,
-    required this.driver_latitude,
-    required this.driver_longitude,
-    required this.driver_photo,
-  });
+  OrderList(
+      {required this.id,
+      required this.orderNumber,
+      required this.notes,
+      required this.deliveryLocation,
+      required this.landmark,
+      required this.paymentMethod,
+      required this.deliveryFee,
+      required this.status,
+      required this.isPaid,
+      required this.total,
+      required this.createdAt,
+      required this.updatedAt,
+      required this.longitude,
+      required this.driver,
+      required this.driver_phone,
+      required this.customer_code,
+      required this.latitude,
+      required this.order_amount,
+      required this.seller,
+      required this.orderItems,
+      required this.numberPlate,
+      required this.friendName,
+      required this.friendPhone,
+      required this.pickup_time,
+      required this.driver_latitude,
+      required this.driver_longitude,
+      required this.driver_photo,
+      required this.isPickup,
+      required this.customer_phone});
 
   int id;
   String orderNumber;
@@ -41,8 +46,12 @@ class OrderList {
   String landmark;
   String paymentMethod;
   String deliveryFee;
+  String friendName;
+  String friendPhone;
   String status;
+  int isPickup;
   String longitude;
+  String pickup_time;
   String order_amount;
   String driver;
   String customer_code;
@@ -53,9 +62,11 @@ class OrderList {
   String driver_phone;
   String total;
   DateTime createdAt;
+  String numberPlate;
   DateTime updatedAt;
   String driver_latitude;
   String driver_longitude;
+  String customer_phone;
 
   List<OrderItem> orderItems;
 
@@ -63,13 +74,19 @@ class OrderList {
         id: json["id"],
         orderNumber: json["order_number"],
         notes: json["notes"],
+        customer_phone: json['customer_phone'],
+        friendName: json['friend_name'] ?? "none",
+        friendPhone: json['friend_phone'] ?? "none",
         customer_code: json['customer_code'],
         deliveryLocation: json["delivery_location"],
         landmark: json["landmark"],
+        isPickup: json['isPickup'],
         paymentMethod: json["payment_method"],
+        pickup_time: json['pickup_time'],
         deliveryFee: json["delivery_fee"],
         order_amount: json['order_amount'].toString(),
         status: json["status"],
+        numberPlate: json['driver_plate'],
         seller: json['seller'],
         driver_photo: json['driver_photo'],
         driver: json['driver'],
@@ -96,15 +113,21 @@ class OrderItem {
     required this.unitId,
     required this.sellPrice,
     required this.createdAt,
+    required this.weight,
     required this.updatedAt,
     required this.product,
+    required this.item,
+    required this.category,
   });
 
   int id;
   String orderId;
   String productId;
   String quantity;
+  String weight;
   String unitId;
+  String item;
+  String category;
   String sellPrice;
   DateTime createdAt;
   DateTime updatedAt;
@@ -116,6 +139,9 @@ class OrderItem {
         productId: json["product_id"],
         quantity: json["quantity"],
         unitId: json["unit_id"],
+        weight: json['weight'],
+        item: json['item'],
+        category: json['category'],
         sellPrice: json["sell_price"],
         createdAt: DateTime.parse(json["created_at"]),
         updatedAt: DateTime.parse(json["updated_at"]),
@@ -145,6 +171,7 @@ class Product {
     required this.photo,
     required this.purchasePrice,
     required this.description,
+    required this.unitShort,
     required this.sellingPrice,
     required this.currentStock,
   });
@@ -154,6 +181,7 @@ class Product {
   String categoryId;
   String unitId;
   String sku;
+  String unitShort;
   String photo;
   String purchasePrice;
   String description;
@@ -166,6 +194,7 @@ class Product {
         categoryId: json["category_id"],
         unitId: json["unit_id"],
         sku: json["sku"],
+        unitShort: json['unit_short'],
         photo: json["photo"],
         purchasePrice: json["purchase_price"],
         description: json["description"],

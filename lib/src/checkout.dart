@@ -1,18 +1,26 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:ars_progress_dialog/dialog.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:campdavid/helpers/constants.dart';
+import 'package:campdavid/helpers/userlist.dart';
 import 'package:campdavid/src/mainpanel.dart';
 import 'package:campdavid/src/ordersuccess.dart';
+import 'package:campdavid/src/outlets.dart';
+import 'package:campdavid/src/resetpasword.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_custom_clippers/flutter_custom_clippers.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:place_picker/place_picker.dart';
+import 'package:google_maps_place_picker_mb/google_maps_place_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:math';
 import '../helpers/cartmodel.dart';
 import 'package:http/http.dart' as http;
 
@@ -26,51 +34,169 @@ class _CheckOutPageState extends State<CheckOutPage> {
   int selected = 0;
   List<OrderItemsModel> ordersList = [];
   final DBHelper _db = DBHelper();
-  late FToast fToast;
+  final _formKeyLogin = GlobalKey<FormState>();
+  final _formKeySignin = GlobalKey<FormState>();
+  static final kInitialPosition = LatLng(-1.03326, 37.06933);
   late ArsProgressDialog progressDialog;
+  List<RidersList> riderslists = [];
   double total = 0;
+  bool isObscure = true;
+  double subtotal = 0;
   String location = "";
   double latitude = 0;
+  String deviceToken = "";
+  bool isShow = true;
+  String message = "";
   double longitude = 0;
+  bool orderforFriend = false;
+  bool isLoggedIn = false;
+  bool hasAccount = false;
+  int selectedItem = 1;
   String landmark = '';
   String paymentmethod = "mpesa";
   final _descEditingController = TextEditingController();
-  String token = "";
+  final _nameController = TextEditingController();
+  final _nameFriendController = TextEditingController();
+  final _phoneFriendEditingController = TextEditingController();
+  TextEditingController timeinput = TextEditingController();
+  final _phoneloginCOntroller = TextEditingController();
+  final _password_loginCOntroller = TextEditingController();
+
+  final _fnameCOntroller = TextEditingController();
+  final _lnameCOntroller = TextEditingController();
+  final _phonesigninCOntroller = TextEditingController();
+  final _password_signinCOntroller = TextEditingController();
+  bool obscure = true;
+  // bool obscure = true;
+
+  final _phoneEditingController = TextEditingController();
+  String? token;
+  PickResult? selectedPlace;
+  bool selectLocation = false;
+  bool selectPhone = false;
+  bool selectPhoneFriend = false;
+  bool selectNameFriend = false;
+  bool selectName = false;
+  RidersList? selectedRider;
+  int selectedDeliveryOption = 0;
+  String deliveryfee = "0";
+  var items = [
+    '0 - 30 Min',
+    '30 Min - 1 Hr',
+    '1 Hr - 1 Hr 30 Min',
+    '1 Hr 30 Min - 2 Hrs',
+    '2 Hr - 2 Hrs 30 Min',
+    'Select Custom Time'
+  ];
+
+  String pickuptime = "";
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    fToast = FToast();
 
-    fToast.init(context);
     progressDialog = ArsProgressDialog(context,
         blur: 2,
         backgroundColor: const Color(0x33000000),
         animationDuration: const Duration(milliseconds: 500));
+    // Future.delayed(const Duration(milliseconds: 300)).then((value) {
+    //   progressDialog.show();
+    // });
 
     SharedPreferences.getInstance().then((value) {
       if (value.getString('token') != null) {
+        if (mounted) {
+          setState(() {
+            deviceToken = value.getString('device_token')!;
+            token = value.getString('token')!;
+            isLoggedIn = true;
+            _nameController.text = value.getString('name')!;
+            _phoneEditingController.text = value.getString('phone')!;
+          });
+        }
+      } else {
         setState(() {
-          token = value.getString('token')!;
+          deviceToken = value.getString('device_token')!;
         });
       }
     });
 
-    _determinePosition().then((value) {
-      setState(() {
-        latitude = value.latitude;
-        longitude = value.longitude;
-      });
-      getaddress();
-    });
+    // _determinePosition().then((value) {
+    //   if (mounted) {
+    //     setState(() {
+    //       latitude = value.latitude;
+    //       longitude = value.longitude;
+    //     });
+
+    //     checklocation();
+    //   }
+    //   //getaddress();
+    // });
+
+    // Timer.periodic(const Duration(seconds: 10), (Timer timer) {
+    //   if (mounted) {
+    //     _determinePosition().then((value) {
+    //       if (mounted) {
+    //         setState(() {
+    //           latitude = value.latitude;
+    //           longitude = value.longitude;
+    //         });
+    //         // checklocation();
+    //       }
+    //       //getaddress();
+    //     });
+    //   }
+    // });
 
     _db.getAllCarts().then((scans) {
-      setState(() {
-        ordersList.addAll(scans);
-        getTotal();
-      });
+      if (mounted) {
+        setState(() {
+          ordersList.addAll(scans);
+          getTotal();
+        });
+      }
     });
+  }
+
+  _onAlertButtonsPressed(message) {
+    progressDialog.dismiss();
+    Alert(
+      context: context,
+      type: AlertType.warning,
+      style: AlertStyle(
+        backgroundColor: Colors.white,
+        titleStyle: GoogleFonts.montserrat(
+            color: primaryColor, fontSize: 25, fontWeight: FontWeight.bold),
+        descStyle: GoogleFonts.montserrat(color: Colors.grey, fontSize: 18),
+      ),
+      title: "Location Request!",
+      desc: message,
+      buttons: [
+        DialogButton(
+          child: Text(
+            "CANCEL",
+            style: GoogleFonts.montserrat(color: Colors.white, fontSize: 18),
+          ),
+          onPressed: () => Navigator.pop(context),
+          color: Colors.black,
+        ),
+        DialogButton(
+          child: Text(
+            "OPEN",
+            style: GoogleFonts.montserrat(color: Colors.white, fontSize: 18),
+          ),
+          onPressed: () async {
+            Navigator.pop(context);
+            await Geolocator.openLocationSettings();
+          },
+          gradient: const LinearGradient(colors: [
+            secondaryColor,
+            primaryColor,
+          ]),
+        )
+      ],
+    ).show();
   }
 
   Future<Position> _determinePosition() async {
@@ -83,24 +209,31 @@ class _CheckOutPageState extends State<CheckOutPage> {
       // Location services are not enabled don't continue
       // accessing the position and request users of the
       // App to enable the location services.
-      return Future.error('Location services are disabled.');
+
+      // return Future.error('Location services are disabled.');
+      _onAlertButtonsPressed(
+          'Location services are disabled. Open settings to enable');
     }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        _showToast("Location permissions are denied. Turn on your location",
-            Icons.check, Colors.red);
-        return Future.error('Location permissions are denied');
+        // _showToast("Location permissions are denied. Turn on your location",
+        //     Icons.check, Colors.red);
+        _onAlertButtonsPressed(
+            'Location permissions are denied. Turn on your location');
+        // return Future.error('Location permissions are denied');
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
       // Permissions are denied forever, handle appropriately.
 
-      _showToast("Location permissions are denied. Turn on your location",
-          Icons.check, Colors.red);
+      // _showToast("Location permissions are denied. Turn on your location",
+      //     Icons.check, Colors.red);
+      _onAlertButtonsPressed(
+          'Location permissions are denied. Turn on your location');
     }
     return await Geolocator.getCurrentPosition();
   }
@@ -114,7 +247,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
       if (place.administrativeArea != null) {
         setState(() {
           location = place.name!;
-          landmark = place.street! + " - " + place.administrativeArea!;
+          landmark = "${place.street!} - ${place.administrativeArea!}";
         });
       } else {
         setState(() {
@@ -124,174 +257,1776 @@ class _CheckOutPageState extends State<CheckOutPage> {
       }
     } else {
       _determinePosition().then((value) {
-        setState(() {
-          latitude = value.latitude;
-          longitude = value.longitude;
-        });
+        if (mounted) {
+          setState(() {
+            latitude = value.latitude;
+            longitude = value.longitude;
+          });
+        }
         getaddress();
       });
+    }
+  }
+
+  double calculateDistance(lat1, lon1, lat2, lon2) {
+    var p = 0.017453292519943295;
+    var a = 0.5 -
+        cos((lat2 - lat1) * p) / 2 +
+        cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2;
+    return 12742 * asin(sqrt(a));
+  }
+
+  void checklocation() async {
+    // 36km
+    print(latitude);
+    print(longitude);
+    var dist =
+        calculateDistance(-1.0732733, 37.1003864, -1.2132713, 36.9090448);
+    print(dist);
+
+    var geolocator = Geolocator.distanceBetween(
+        -1.0732733, 37.1003864, -1.2132713, 36.9090448);
+    print(geolocator);
+
+    progressDialog.show();
+    Map data = {
+      'longitude': longitude.toString(),
+      'latitude': latitude.toString()
+    };
+    var body = json.encode(data);
+    var response = await http.post(Uri.parse('${mainUrl}getRadius'),
+        headers: {
+          "Content-Type": "application/json",
+          'Accept': 'application/json',
+        },
+        body: body);
+
+    print(response.body);
+    Map<String, dynamic> json1 = json.decode(response.body);
+    if (response.statusCode == 200) {
+      progressDialog.dismiss();
+
+      if (json1['success'] == "true") {
+        setState(() {
+          isShow = true;
+          deliveryfee = json1['delivery_fee'].toStringAsFixed(0);
+          getTotal();
+        });
+      } else {
+        setState(() {
+          // isShow = false;
+          message = json1['message'];
+        });
+
+        Alert(
+          context: context,
+          type: AlertType.warning,
+          style: AlertStyle(
+            backgroundColor: Colors.white,
+            titleStyle: GoogleFonts.montserrat(
+                color: primaryColor, fontSize: 25, fontWeight: FontWeight.bold),
+            descStyle: GoogleFonts.montserrat(color: Colors.grey, fontSize: 18),
+          ),
+          title: "Location Check!",
+          desc: message,
+          buttons: [
+            DialogButton(
+              child: Text(
+                "CANCEL",
+                style:
+                    GoogleFonts.montserrat(color: Colors.white, fontSize: 18),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() {
+                  selectLocation = true;
+                  location = "";
+                  landmark = "";
+                  latitude = 0;
+                  longitude = 0;
+                });
+              },
+              color: Colors.black,
+            ),
+            DialogButton(
+              color: primaryColor,
+              child: Text(
+                "EXPLORE",
+                style:
+                    GoogleFonts.montserrat(color: Colors.white, fontSize: 18),
+              ),
+              onPressed: () async {
+                Navigator.pop(context);
+                setState(() {
+                  selectLocation = true;
+                  location = "";
+                  landmark = "";
+                  latitude = 0;
+                  longitude = 0;
+                });
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Outlets(),
+                    ));
+              },
+            )
+          ],
+        ).show();
+      }
+    } else {
+      progressDialog.dismiss();
+      showToast(json1['message'], Colors.red);
     }
   }
 
   void validateSubmit() async {
-      progressDialog.show();
-    if (longitude == 0.0) {
-      _determinePosition().then((value) {
+    if (orderforFriend) {
+      if (_nameFriendController.text.isEmpty) {
+        showToast("Please enter your friend's name", Colors.red);
         setState(() {
-          latitude = value.latitude;
-          longitude = value.longitude;
+          selectNameFriend = true;
         });
-        getaddress();
-      });
+        return;
+      }
+      if (_phoneFriendEditingController.text.isEmpty) {
+        showToast("Please enter your friend's phone number", Colors.red);
+        setState(() {
+          selectPhoneFriend = true;
+        });
+        return;
+      }
     }
-    if (landmark != '') {
+    if (location != "" &&
+        _phoneEditingController.text.isNotEmpty &&
+        _nameController.text.isNotEmpty) {
+      progressDialog.show();
 
-      var items = "";
-      if (selected == 0) {
-        setState(() {
-          paymentmethod = 'mpesa';
-        });
-      }
-      if (selected == 2) {
-        setState(() {
-          paymentmethod = 'cash';
-        });
-      }
-
-      for (var element in ordersList) {
-        if (items == "") {
-          if (element.tag_name != "none") {
-            setState(() {
-              items =
-                  "${element.productId}/${element.quantity}/${element.tag_price}/yes";
-            });
-          } else {
-            setState(() {
-              items =
-                  "${element.productId}/${element.quantity}/${element.amount}/no";
-            });
-          }
-        } else {
-          if (element.tag_name != "none") {
-            setState(() {
-              items =
-                  "$items,${element.productId}/${element.quantity}/${element.tag_price}/yes";
-            });
-          } else {
-            setState(() {
-              items =
-                  "$items,${element.productId}/${element.quantity}/${element.amount}/no";
-            });
-          }
-        }
-      }
-
-      Map data = {
-        'landmark': landmark,
-        'longitude': longitude.toString(),
-        'latitude': latitude.toString(),
-        'payment_method': paymentmethod,
-        'total_amount': total.toString(),
-        'delivery_location': location,
-        'total': total.toString(),
-        'desc': _descEditingController.text.isEmpty
-            ? "N/A"
-            : _descEditingController.text,
-        'items': items
-      };
-      var body = json.encode(data);
-      var response = await http.post(Uri.parse('${mainUrl}create-order'),
-          headers: {
-            "Content-Type": "application/json",
-            'Accept': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-          body: body);
-
-      print(response.body);
-      Map<String, dynamic> json1 = json.decode(response.body);
-      if (response.statusCode == 200) {
-        progressDialog.dismiss();
-        if (json1['success'] == "1") {
-          _db.deleteAll().then((value) {
-            Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => OrderSuccess(order_number: json1['order_number']),
-                ));
+      if (landmark != '') {
+        var items = [];
+        if (selected == 0) {
+          setState(() {
+            paymentmethod = 'mpesa';
           });
-          _showToast(json1['message'], Icons.check, Colors.green);
+        }
+        if (selected == 2) {
+          setState(() {
+            paymentmethod = 'cash';
+          });
+        }
+
+        for (var element in ordersList) {
+          var itm = {
+            'product_id': element.productId,
+            'quantity': element.quantity,
+            'weight': element.weight,
+            'amount': element.amount,
+            'packageId': element.packageId,
+            'tagId': element.tagId,
+            'tagname': element.tagName,
+          };
+          items.add(itm);
+        }
+
+        print(deviceToken);
+
+        Map data = {
+          'landmark': landmark,
+          'deviceToken': deviceToken,
+          'friend_name': _nameFriendController.text.isNotEmpty ? _nameFriendController.text : "none",
+          'friend_phone': _phoneFriendEditingController.text.isNotEmpty ? _phoneFriendEditingController.text : "none",
+          'longitude': longitude.toString(),
+          'selectedDeliveryOption': selectedDeliveryOption.toString(),
+          'delivery_fee': deliveryfee,
+          'pickup':
+              selectedRider != null ? selectedRider!.id.toString() : "N/A",
+          'latitude': latitude.toString(),
+          'payment_method': paymentmethod,
+          'name': _nameController.text,
+          'phone': _phoneEditingController.text,
+          'pickup_time': pickuptime,
+          'total_amount': subtotal.toString(),
+          'delivery_location': location,
+          'total': subtotal.toString(),
+          'desc': _descEditingController.text.isEmpty
+              ? "N/A"
+              : _descEditingController.text,
+          'items': items
+        };
+        var body = json.encode(data);
+        if (token != null) {
+          var response =
+              await http.post(Uri.parse('${mainUrl}create-new-order'),
+                  headers: {
+                    "Content-Type": "application/json",
+                    'Accept': 'application/json',
+                    'Authorization': 'Bearer $token',
+                  },
+                  body: body);
+
+          print(response.body);
+          Map<String, dynamic> json1 = json.decode(response.body);
+          if (response.statusCode == 200) {
+            progressDialog.dismiss();
+            if (json1['success'] == "1") {
+              _db.deleteAll().then((value) {
+                Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          OrderSuccess(order_number: json1['order_number']),
+                    ));
+              });
+              showToast(json1['message'], Colors.green);
+            } else {
+              showToast(json1['message'], Colors.red);
+            }
+          } else {
+            progressDialog.dismiss();
+            showToast(json1['message'], Colors.red);
+          }
         } else {
-          _showToast(json1['message'], Icons.cancel, Colors.red);
+          var response = await http.post(Uri.parse('${mainUrl}create_order'),
+              headers: {
+                "Content-Type": "application/json",
+                'Accept': 'application/json',
+              },
+              body: body);
+          print(response.body);
+
+          Map<String, dynamic> json1 = json.decode(response.body);
+          if (response.statusCode == 200) {
+            progressDialog.dismiss();
+            if (json1['success'] == "1") {
+              _db.deleteAll().then((value) {
+                Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          OrderSuccess(order_number: json1['order_number']),
+                    ));
+              });
+              showToast(json1['message'], Colors.green);
+            } else {
+              showToast(json1['message'], Colors.red);
+            }
+          } else {
+            progressDialog.dismiss();
+            showToast(json1['message'], Colors.red);
+          }
         }
       } else {
-        progressDialog.dismiss();
-        _showToast(json1['message'], Icons.cancel, Colors.red);
+        validateSubmit();
       }
     } else {
-      validateSubmit();
+      if (location == "") {
+        setState(() {
+          selectLocation = true;
+        });
+      }
+      if (_phoneEditingController.text.isEmpty) {
+        setState(() {
+          selectPhone = true;
+        });
+      }
+      if (_nameController.text.isEmpty) {
+        setState(() {
+          selectName = true;
+        });
+      }
+
+      showToast("Please enter required details", Colors.red);
     }
+  }
+
+  void showToast(message, color) {
+    Fluttertoast.showToast(
+        msg: message,
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 1,
+        backgroundColor: color,
+        textColor: Colors.white,
+        fontSize: 16.0);
   }
 
   void getTotal() {
-    total = 0;
+    total = double.parse(deliveryfee);
     ordersList.forEach((element) {
-      if (element.tag_name != 'none') {
-        total +=
-            (double.parse(element.tag_price) * double.parse(element.quantity));
-      } else {
+      setState(() {
         total +=
             (double.parse(element.amount) * double.parse(element.quantity));
-      }
+      });
     });
-  }
-
-  Future<LocationResult> showPlacePicker() async {
-    LocationResult result = await Navigator.of(context).push(MaterialPageRoute(
-        builder: (context) => PlacePicker(
-              kGoogleApiKey,
-            )));
     setState(() {
-      location = result.name! + " " + result.locality!;
-      latitude = result.latLng!.latitude;
-      longitude = result.latLng!.longitude;
+      subtotal = total - double.parse(deliveryfee);
     });
-    getaddress();
-    return result;
   }
 
-  _showToast(content, IconData icon, color) {
-    Widget toast = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25.0),
-        color: color,
-      ),
-      child: Row(
-        // mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon),
-          const SizedBox(
-            width: 12.0,
-          ),
-          Expanded(
-            child: Text(
-              content,
-              style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
+  // Future<LocationResult> showPlacePicker() async {
+  //   // LocationResult result = await Navigator.of(context).push(MaterialPageRoute(
+  //   //     builder: (context) => PlacePicker(
 
-    fToast.showToast(
-      child: toast,
-      gravity: ToastGravity.BOTTOM,
-      toastDuration: const Duration(seconds: 2),
-    );
+  //   //           kGoogleApiKey,
+  //   //         )));
+
+  //   // setState(() {
+  //   //   location = result.name! + " " + result.locality!;
+  //   //   latitude = result.latLng!.latitude;
+  //   //   longitude = result.latLng!.longitude;
+  //   // });
+
+  //   getaddress();
+  //   return result;
+  // }
+
+  void _openDialog(cntx) async {
+    await Navigator.of(cntx).push(MaterialPageRoute<String>(
+        builder: (BuildContext cntx) {
+          return Scaffold(
+              appBar: AppBar(
+                title: Text(
+                  "Select Outlet",
+                  style: GoogleFonts.montserrat(fontSize: 20),
+                ),
+                backgroundColor: primaryColor,
+                actions: const [],
+              ),
+              body: StatefulBuilder(builder: (context, setmState) {
+                return Container(
+                  width: MediaQuery.of(cntx).size.width,
+                  height: MediaQuery.of(cntx).size.height,
+                  padding: const EdgeInsets.all(8),
+                  color: Colors.white,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: ListView.builder(
+                      itemCount: riderslists.length,
+                      shrinkWrap: true,
+                      physics: const BouncingScrollPhysics(),
+                      itemBuilder: (context, index) => Card(
+                        margin: const EdgeInsets.only(top: 8),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
+                        elevation: 3,
+                        child: InkWell(
+                          onTap: () {
+                            setmState(() {
+                              selectedRider = riderslists[index];
+                              selectedDeliveryOption = 1;
+                              deliveryfee = "0";
+                            });
+                            setState(() {
+                              selectedRider = riderslists[index];
+                              selectedDeliveryOption = 1;
+                              selectLocation = false;
+                              location = riderslists[index].location;
+                              landmark = riderslists[index].landmark;
+                              deliveryfee = "0";
+                              latitude =
+                                  double.parse(riderslists[index].latitude);
+                              longitude =
+                                  double.parse(riderslists[index].longitude);
+                            });
+                          },
+                          child: Column(
+                            children: [
+                              Card(
+                                color: Colors.grey.shade100,
+                                margin:
+                                    const EdgeInsets.only(left: 0, right: 0),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            riderslists[index].name,
+                                            style: GoogleFonts.montserrat(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 18),
+                                          ),
+                                          const Spacer(),
+                                          if (selectedRider != null &&
+                                              selectedRider!.id ==
+                                                  riderslists[index].id)
+                                            const Icon(
+                                              Icons.radio_button_checked,
+                                              size: 30,
+                                            )
+                                          else
+                                            const Icon(
+                                              Icons.radio_button_off,
+                                              size: 30,
+                                            )
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 10,
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Location:",
+                                            style: GoogleFonts.montserrat(
+                                                fontSize: 14,
+                                                color: Colors.grey),
+                                          ),
+                                          const SizedBox(
+                                            width: 10,
+                                          ),
+                                          Text(
+                                            riderslists[index].location,
+                                            style: GoogleFonts.montserrat(),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 10,
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Landmark:",
+                                            style: GoogleFonts.montserrat(
+                                                fontSize: 14,
+                                                color: Colors.grey),
+                                          ),
+                                          const SizedBox(
+                                            width: 10,
+                                          ),
+                                          Text(
+                                            riderslists[index].landmark,
+                                            style: GoogleFonts.montserrat(),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 10,
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Contacts:",
+                                            style: GoogleFonts.montserrat(
+                                                fontSize: 14,
+                                                color: Colors.grey),
+                                          ),
+                                          const SizedBox(
+                                            width: 10,
+                                          ),
+                                          Text(
+                                            riderslists[index].phone,
+                                            style: GoogleFonts.montserrat(),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 10,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 10,
+                              ),
+                              if (selectedRider != null &&
+                                  selectedRider!.id == riderslists[index].id)
+                                Container(
+                                  alignment: Alignment.topLeft,
+                                  margin: const EdgeInsets.only(left: 8),
+                                  child: Text(
+                                    "Pickup time",
+                                    style: GoogleFonts.montserrat(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18),
+                                  ),
+                                ),
+                              if (selectedRider != null &&
+                                  selectedRider!.id == riderslists[index].id)
+                                SizedBox(
+                                  width: getWidth(context),
+                                  height: 50,
+                                  child: SingleChildScrollView(
+                                      physics: const BouncingScrollPhysics(),
+                                      scrollDirection: Axis.horizontal,
+                                      child: ListView.builder(
+                                        itemCount: items.length,
+                                        scrollDirection: Axis.horizontal,
+                                        shrinkWrap: true,
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
+                                        itemBuilder: (context, index) => Card(
+                                          color: pickuptime == items[index]
+                                              ? Colors.grey.shade200
+                                              : Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10)),
+                                          child: InkWell(
+                                            onTap: () async {
+                                              if (items[index] ==
+                                                  "Select Custom Time") {
+                                                TimeOfDay? pickedTime =
+                                                    await showTimePicker(
+                                                  initialTime: TimeOfDay.now(),
+                                                  context: context,
+                                                );
+
+                                                if (pickedTime != null) {
+                                                  // print(pickedTime.format(
+                                                  //     context)); //output 10:51 PM
+                                                  // DateTime parsedTime =
+                                                  //     DateFormat.jm().parse(
+                                                  //         pickedTime
+                                                  //             .format(context)
+                                                  //             .toString());
+                                                  // String formattedTime =
+                                                  //     DateFormat('HH:mm')
+                                                  //         .format(parsedTime);
+                                                  // print(
+                                                  //     formattedTime); //output 14:59:00
+
+                                                  setState(() {
+                                                    timeinput.text = pickedTime
+                                                        .format(context);
+                                                    pickuptime = pickedTime
+                                                        .format(context);
+                                                  });
+
+                                                  setmState(() {
+                                                    timeinput.text = pickedTime
+                                                        .format(context);
+                                                    pickuptime = pickedTime
+                                                        .format(context);
+                                                  });
+                                                } else {
+                                                  print("Time is not selected");
+                                                }
+                                              } else {
+                                                setState(() {
+                                                  timeinput.text = items[index];
+                                                  pickuptime = items[index];
+                                                });
+
+                                                setmState(() {
+                                                  timeinput.text = items[index];
+                                                  pickuptime = items[index];
+                                                });
+                                              }
+                                            },
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(4.0)
+                                                  .copyWith(left: 8, right: 8),
+                                              child: Row(
+                                                children: [
+                                                  const Icon(Icons.access_time),
+                                                  const SizedBox(
+                                                    width: 10,
+                                                  ),
+                                                  Text(
+                                                    items[index],
+                                                    style: GoogleFonts
+                                                        .montserrat(),
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      )),
+                                ),
+                              if (selectedRider != null &&
+                                  selectedRider!.id == riderslists[index].id)
+                                const SizedBox(
+                                  height: 10,
+                                ),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                margin: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    border: Border.all(width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        offset: const Offset(0, 4),
+                                        color: Colors.grey.shade400,
+                                        blurRadius: 4,
+                                      )
+                                    ],
+                                    borderRadius: BorderRadius.circular(15)),
+                                child: InkWell(
+                                  onTap: () {
+                                    setmState(() {
+                                      selectedRider = riderslists[index];
+                                      selectedDeliveryOption = 1;
+                                      selectLocation = false;
+                                      location = riderslists[index].location;
+                                      landmark = riderslists[index].landmark;
+                                      latitude = double.parse(
+                                          riderslists[index].latitude);
+                                      longitude = double.parse(
+                                          riderslists[index].longitude);
+                                    });
+                                    // if (riderslists[index].approximatecost !=
+                                    //     0) {
+                                    //   setState(() {
+                                    //     deliveryfee = riderslists[index]
+                                    //         .approximatecost
+                                    //         .toString();
+                                    //   });
+                                    //   setmState(() {
+                                    //     deliveryfee = riderslists[index]
+                                    //         .approximatecost
+                                    //         .toString();
+                                    //   });
+                                    // }
+                                    setState(() {
+                                      selectedRider = riderslists[index];
+
+                                      selectedDeliveryOption = 1;
+                                      selectLocation = false;
+                                      location = riderslists[index].location;
+                                      landmark = riderslists[index].landmark;
+                                      latitude = double.parse(
+                                          riderslists[index].latitude);
+                                      longitude = double.parse(
+                                          riderslists[index].longitude);
+                                    });
+
+                                    Future.delayed(
+                                            const Duration(milliseconds: 500))
+                                        .then((value) {
+                                      progressDialog.show();
+                                      Future.delayed(const Duration(seconds: 2))
+                                          .then((value) {
+                                        progressDialog.dismiss();
+                                        Navigator.pop(context);
+                                        getTotal();
+                                      });
+                                    });
+                                  },
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        "Pick Here",
+                                        style: GoogleFonts.montserrat(
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 10,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }));
+        },
+        fullscreenDialog: true));
+  }
+
+  Future<List<RidersList>> fetchoutlets() async {
+    final uri = Uri.parse("${mainUrl}outlets");
+    final res = await http.get(uri, headers: {
+      "Content-Type": "application/json",
+      'Accept': 'application/json'
+    });
+    return ridersListFromJson(res.body);
+  }
+
+  void _viewmoreModalBottomSheet(context) {
+    var height = MediaQuery.of(context).size.height;
+    var width = MediaQuery.of(context).size.width;
+    showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: true,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20), topRight: Radius.circular(20))),
+        builder: (BuildContext bc) {
+          return Container(
+            padding: const EdgeInsets.all(8).copyWith(top: 15),
+            decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(20),
+                    topLeft: Radius.circular(20))),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                const SizedBox(
+                  height: 20,
+                ),
+                Container(
+                  width: width * 0.4,
+                  decoration:
+                      BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                  child: Center(
+                    child: Text(
+                      "Select Option",
+                      style: GoogleFonts.montserrat(fontSize: 17),
+                    ),
+                  ),
+                ),
+                const SizedBox(
+                  height: 30,
+                ),
+                InkWell(
+                  onTap: () {
+                    progressDialog.show();
+                    riderslists.clear();
+                    fetchoutlets().then((value) {
+                      progressDialog.dismiss();
+
+                      setState(() {
+                        riderslists.addAll(value);
+                        deliveryfee = "0";
+                        getTotal();
+                      });
+                      Navigator.pop(context);
+                      _openDialog(context);
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    width: MediaQuery.of(context).size.width * 0.9,
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(width: 2),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 6.0,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                        borderRadius: BorderRadius.circular(20)),
+                    height: height * 0.065,
+                    child: Center(
+                      child: Text(
+                        "Pickup",
+                        style: GoogleFonts.montserrat(
+                            fontWeight: FontWeight.bold, fontSize: 18),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(
+                  height: 30,
+                ),
+                InkWell(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PlacePicker(
+                          apiKey: kGoogleApiKey,
+                          onPlacePicked: (result) {
+                            Navigator.of(context).pop();
+                            setState(() {
+                              selectedDeliveryOption = 0;
+                              selectedPlace = result;
+                              if (result != null) {
+                                setState(() {
+                                  selectLocation = false;
+                                  location = result.formattedAddress!;
+                                  if (result.name != null) {
+                                    landmark = result.name!;
+                                  } else {
+                                    landmark = result.formattedAddress!;
+                                  }
+                                  if (result.geometry != null) {
+                                    latitude = result.geometry!.location.lat;
+                                    longitude = result.geometry!.location.lng;
+
+                                    checklocation();
+                                  }
+                                });
+                              }
+                            });
+                          },
+                          region: "KE",
+                          initialPosition: kInitialPosition,
+                          enableMyLocationButton: true,
+                          selectInitialPosition: true,
+                          desiredLocationAccuracy: LocationAccuracy.best,
+                          usePinPointingSearch: true,
+                          useCurrentLocation: true,
+                          resizeToAvoidBottomInset:
+                              false, // remove this line, if map offsets are wrong
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    width: MediaQuery.of(context).size.width * 0.9,
+                    decoration: BoxDecoration(
+                        color: primaryColor,
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 6.0,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                        borderRadius: BorderRadius.circular(20)),
+                    height: height * 0.065,
+                    child: Center(
+                      child: Text(
+                        "Pick Location",
+                        style: GoogleFonts.montserrat(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 18),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(
+                  height: 30,
+                ),
+              ],
+            ),
+          );
+        });
+  }
+
+  void openDialogSignin(cntx) async {
+    await Navigator.of(cntx).push(MaterialPageRoute<String>(
+        builder: (BuildContext cntx) {
+          return Scaffold(
+              appBar: AppBar(
+                title: Text(
+                  "Login/Create Account",
+                  style: GoogleFonts.montserrat(fontSize: 20),
+                ),
+                backgroundColor: primaryColor,
+                actions: const [],
+              ),
+              body: StatefulBuilder(builder: (context, setmState) {
+                return Container(
+                  width: MediaQuery.of(cntx).size.width,
+                  height: MediaQuery.of(cntx).size.height,
+                  padding: const EdgeInsets.all(8),
+                  color: Colors.white,
+                  child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        children: [
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                  child: InkWell(
+                                onTap: () {
+                                  setmState(() {
+                                    selectedItem = 0;
+                                  });
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                      color: selectedItem == 0
+                                          ? Colors.grey.shade300
+                                          : Colors.white,
+                                      borderRadius: const BorderRadius.only(
+                                          topLeft: Radius.circular(20),
+                                          bottomLeft: Radius.circular(20))),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Center(
+                                      child: Text(
+                                        "Login",
+                                        style: GoogleFonts.montserrat(
+                                            fontSize: 20),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )),
+                              Expanded(
+                                  child: InkWell(
+                                onTap: () {
+                                  setmState(() {
+                                    selectedItem = 1;
+                                  });
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                      color: selectedItem == 1
+                                          ? Colors.grey.shade300
+                                          : Colors.white,
+                                      borderRadius: const BorderRadius.only(
+                                          topRight: Radius.circular(20),
+                                          bottomRight: Radius.circular(20))),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Center(
+                                      child: Text(
+                                        "Signin",
+                                        style: GoogleFonts.montserrat(
+                                            fontSize: 20),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ))
+                            ],
+                          ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          if (selectedItem == 0)
+                            Form(
+                              key: _formKeyLogin,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(
+                                    height: 50,
+                                  ),
+                                  if (hasAccount)
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.only(left: 15.0),
+                                      child: Text(
+                                        "Please login to proceed",
+                                        style: GoogleFonts.montserrat(
+                                            color: Colors.grey),
+                                      ),
+                                    ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 15.0),
+                                    child: Text(
+                                      "Phone Number",
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ),
+                                  Card(
+                                    margin: const EdgeInsets.all(10)
+                                        .copyWith(top: 5),
+                                    elevation: 3,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(32)),
+                                    child: TextFormField(
+                                      cursorColor: primaryColor,
+                                      keyboardType: TextInputType.number,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 18,
+                                      ),
+                                      maxLength: 13,
+                                      onChanged: (value) {},
+                                      controller: _phoneloginCOntroller,
+                                      decoration: InputDecoration(
+                                        enabledBorder: const OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.white,
+                                                width: 0.0),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32))),
+                                        focusedBorder: const OutlineInputBorder(
+                                            borderSide:
+                                                BorderSide(color: Colors.white),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32))),
+                                        prefixIcon: const Icon(
+                                          Icons.phone,
+                                          color: Colors.black87,
+                                        ),
+                                        errorBorder: InputBorder.none,
+                                        disabledBorder: InputBorder.none,
+                                        counterText: "",
+                                        contentPadding:
+                                            const EdgeInsets.all(12),
+                                        hintText: " 0*********",
+                                        hintStyle: GoogleFonts.montserrat(
+                                            color: Colors.black87,
+                                            fontSize: 18),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 15.0),
+                                    child: Text(
+                                      "Password",
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ),
+                                  Card(
+                                    margin: const EdgeInsets.all(10)
+                                        .copyWith(top: 5),
+                                    elevation: 3,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(32)),
+                                    child: TextFormField(
+                                      cursorColor: primaryColor,
+                                      keyboardType:
+                                          TextInputType.visiblePassword,
+                                      obscureText: isObscure,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 18,
+                                      ),
+                                      onChanged: (value) {},
+                                      controller: _password_loginCOntroller,
+                                      decoration: InputDecoration(
+                                        enabledBorder: const OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.white,
+                                                width: 0.0),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32))),
+                                        focusedBorder: const OutlineInputBorder(
+                                            borderSide:
+                                                BorderSide(color: Colors.white),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32))),
+                                        errorBorder: InputBorder.none,
+                                        disabledBorder: InputBorder.none,
+                                        counterText: "",
+                                        contentPadding:
+                                            const EdgeInsets.all(12),
+                                        prefixIcon: InkWell(
+                                            onTap: () {
+                                              setmState(() {
+                                                isObscure = !isObscure;
+                                              });
+                                            },
+                                            child: const Icon(
+                                              Icons.password,
+                                              color: Colors.black87,
+                                            )),
+                                        hintText: "Password",
+                                        hintStyle: GoogleFonts.montserrat(
+                                            color: Colors.black87,
+                                            fontSize: 18),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 20,
+                                  ),
+                                  Container(
+                                    margin: const EdgeInsets.all(15),
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                        color: primaryColor,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            offset: const Offset(0, 4),
+                                            color: Colors.grey.shade400,
+                                            blurRadius: 4,
+                                          )
+                                        ],
+                                        borderRadius:
+                                            BorderRadius.circular(32)),
+                                    child: InkWell(
+                                      onTap: () {
+                                        validateSubmitLogin();
+                                      },
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            "LOGIN",
+                                            style: GoogleFonts.montserrat(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 20),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 20,
+                                  ),
+                                  InkWell(
+                                    onTap: () {
+                                      setmState(() {
+                                        selectedItem = 1;
+                                      });
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.only(right: 10),
+                                      alignment: Alignment.center,
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            "Don't have an account? ",
+                                            style: GoogleFonts.montserrat(
+                                                color: Colors.grey,
+                                                fontSize: 18),
+                                          ),
+                                          Text(
+                                            "SIgnup",
+                                            style: GoogleFonts.montserrat(
+                                                color: primaryColor,
+                                                fontSize: 18),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 20,
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Form(
+                              key: _formKeySignin,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(
+                                    height: 50,
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 15.0),
+                                    child: Text(
+                                      "First Name",
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ),
+                                  Card(
+                                    margin: const EdgeInsets.all(10)
+                                        .copyWith(top: 5),
+                                    elevation: 3,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(32)),
+                                    child: TextFormField(
+                                      cursorColor: primaryColor,
+                                      keyboardType: TextInputType.text,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 18,
+                                      ),
+                                      onChanged: (value) {},
+                                      validator: (input) => input!.isEmpty
+                                          ? "Firstname should be valid"
+                                          : null,
+                                      controller: _fnameCOntroller,
+                                      decoration: InputDecoration(
+                                        enabledBorder: const OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.white,
+                                                width: 0.0),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32))),
+                                        focusedBorder: const OutlineInputBorder(
+                                            borderSide:
+                                                BorderSide(color: Colors.white),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32))),
+                                        prefixIcon: const Icon(
+                                          Icons.person,
+                                          color: Colors.black87,
+                                        ),
+                                        errorBorder: InputBorder.none,
+                                        disabledBorder: InputBorder.none,
+                                        counterText: "",
+                                        contentPadding:
+                                            const EdgeInsets.all(12),
+                                        hintText: "First Name",
+                                        hintStyle: GoogleFonts.montserrat(
+                                            color: Colors.black87,
+                                            fontSize: 18),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 15.0),
+                                    child: Text(
+                                      "Last Name",
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ),
+                                  Card(
+                                    margin: const EdgeInsets.all(10)
+                                        .copyWith(top: 5),
+                                    elevation: 3,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(32)),
+                                    child: TextFormField(
+                                      cursorColor: primaryColor,
+                                      keyboardType: TextInputType.text,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 18,
+                                      ),
+                                      onChanged: (value) {},
+                                      validator: (input) => input!.isEmpty
+                                          ? "Last name should be valid"
+                                          : null,
+                                      controller: _lnameCOntroller,
+                                      decoration: InputDecoration(
+                                        enabledBorder: const OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.white,
+                                                width: 0.0),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32))),
+                                        focusedBorder: const OutlineInputBorder(
+                                            borderSide:
+                                                BorderSide(color: Colors.white),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32))),
+                                        prefixIcon: const Icon(
+                                          Icons.person,
+                                          color: Colors.black87,
+                                        ),
+                                        errorBorder: InputBorder.none,
+                                        disabledBorder: InputBorder.none,
+                                        counterText: "",
+                                        contentPadding:
+                                            const EdgeInsets.all(12),
+                                        hintText: "Last Name",
+                                        hintStyle: GoogleFonts.montserrat(
+                                            color: Colors.black87,
+                                            fontSize: 18),
+                                      ),
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 15.0),
+                                    child: Text(
+                                      "Phone Number",
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ),
+                                  Card(
+                                    margin: const EdgeInsets.all(10)
+                                        .copyWith(top: 5),
+                                    elevation: 3,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(32)),
+                                    child: TextFormField(
+                                      cursorColor: primaryColor,
+                                      keyboardType: TextInputType.number,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 18,
+                                      ),
+                                      maxLength: 10,
+                                      onChanged: (value) {},
+                                      validator: (input) => input!.isEmpty
+                                          ? "Phone should be valid"
+                                          : null,
+                                      controller: _phonesigninCOntroller,
+                                      decoration: InputDecoration(
+                                        enabledBorder: const OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.white,
+                                                width: 0.0),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32))),
+                                        focusedBorder: const OutlineInputBorder(
+                                            borderSide:
+                                                BorderSide(color: Colors.white),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32))),
+                                        prefixIcon: const Icon(
+                                          Icons.phone,
+                                          color: Colors.black87,
+                                        ),
+                                        errorBorder: InputBorder.none,
+                                        disabledBorder: InputBorder.none,
+                                        counterText: "",
+                                        contentPadding:
+                                            const EdgeInsets.all(12),
+                                        hintText: " 0*********",
+                                        hintStyle: GoogleFonts.montserrat(
+                                            color: Colors.black87,
+                                            fontSize: 18),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 15.0),
+                                    child: Text(
+                                      "Password",
+                                      style: GoogleFonts.montserrat(),
+                                    ),
+                                  ),
+                                  Card(
+                                    margin: const EdgeInsets.all(10)
+                                        .copyWith(top: 5),
+                                    elevation: 3,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(32)),
+                                    child: TextFormField(
+                                      cursorColor: primaryColor,
+                                      keyboardType:
+                                          TextInputType.visiblePassword,
+                                      obscureText: obscure,
+                                      style: GoogleFonts.montserrat(
+                                        fontSize: 18,
+                                      ),
+                                      onChanged: (value) {},
+                                      validator: (input) => input!.isEmpty
+                                          ? "Password should not be empty"
+                                          : null,
+                                      controller: _password_signinCOntroller,
+                                      decoration: InputDecoration(
+                                        enabledBorder: const OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.white,
+                                                width: 0.0),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32))),
+                                        focusedBorder: const OutlineInputBorder(
+                                            borderSide:
+                                                BorderSide(color: Colors.white),
+                                            borderRadius: BorderRadius.all(
+                                                Radius.circular(32))),
+                                        errorBorder: InputBorder.none,
+                                        disabledBorder: InputBorder.none,
+                                        counterText: "",
+                                        contentPadding:
+                                            const EdgeInsets.all(12),
+                                        prefixIcon: InkWell(
+                                            onTap: () {
+                                              setmState(() {
+                                                obscure = !obscure;
+                                              });
+                                            },
+                                            child: const Icon(
+                                              Icons.password,
+                                              color: Colors.black87,
+                                            )),
+                                        hintText: "Password",
+                                        hintStyle: GoogleFonts.montserrat(
+                                            color: Colors.black87,
+                                            fontSize: 18),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 20,
+                                  ),
+                                  Container(
+                                    margin: const EdgeInsets.all(15),
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                        color: primaryColor,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            offset: const Offset(0, 4),
+                                            color: Colors.grey.shade400,
+                                            blurRadius: 4,
+                                          )
+                                        ],
+                                        borderRadius:
+                                            BorderRadius.circular(32)),
+                                    child: InkWell(
+                                      onTap: () {
+                                        validateSubmitsignin();
+                                      },
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            "SIGNUP",
+                                            style: GoogleFonts.montserrat(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 20),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  InkWell(
+                                    onTap: () {
+                                      setmState(() {
+                                        selectedItem = 0;
+                                      });
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.only(right: 10),
+                                      alignment: Alignment.center,
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            "Already have an account? ",
+                                            style: GoogleFonts.montserrat(
+                                                color: Colors.grey,
+                                                fontSize: 18),
+                                          ),
+                                          Text(
+                                            "Login",
+                                            style: GoogleFonts.montserrat(
+                                                color: primaryColor,
+                                                fontSize: 18),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    height: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(
+                            height: 20,
+                          ),
+                          Align(
+                            alignment: Alignment.center,
+                            child: InkWell(
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ResetPassword(
+                                        phone: _phoneloginCOntroller
+                                                .text.isNotEmpty
+                                            ? _phoneloginCOntroller.text
+                                            : _phoneEditingController
+                                                    .text.isNotEmpty
+                                                ? _phoneEditingController.text
+                                                : _phonesigninCOntroller
+                                                        .text.isNotEmpty
+                                                    ? _phonesigninCOntroller
+                                                        .text
+                                                    : ""),
+                                  )),
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 10),
+                                child: Text(
+                                  "Forgot Password? ",
+                                  style: GoogleFonts.montserrat(
+                                      color: secondaryColor, fontSize: 18),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )),
+                );
+              }));
+        },
+        fullscreenDialog: true));
+  }
+
+  void validateSubmitLogin() async {
+    var formstate = _formKeyLogin.currentState;
+    if (formstate!.validate()) {
+      progressDialog.show();
+      var data = {
+        'password': _password_loginCOntroller.text,
+        'is_checkout': 'yes',
+        'phone': _phoneloginCOntroller.text
+      };
+      var body = json.encode(data);
+      print(body);
+      var response = await http.post(Uri.parse("${mainUrl}user-signin"),
+          headers: {
+            "Content-Type": "application/json",
+            'Accept': 'application/json',
+          },
+          body: body);
+      final mpref = await SharedPreferences.getInstance();
+
+      Map<String, dynamic> json1 = json.decode(response.body);
+      if (response.statusCode == 200) {
+        // progressDialog.dismiss();
+        if (json1['success'] == "1") {
+          Navigator.pop(context);
+          Map<String, dynamic> user = json1['user'];
+          setState(() {
+            token = json1['token'];
+            isLoggedIn = true;
+            _nameController.text = user['first_name'] + " " + user['last_name'];
+            _phoneEditingController.text = user['phone'];
+            mpref.setString("token", json1['token']);
+            mpref.setString(
+                "name", user['first_name'] + " " + user['last_name']);
+            mpref.setString("user_id", user['id'].toString());
+            mpref.setString("phone", user['phone']);
+            mpref.setString("call_phone", json1['call_phone']);
+            mpref.setString("support_email", json1['support_email']);
+            mpref.setString("orders", json1['orders'].toString());
+            mpref.setString("paybill", json1['paybill']);
+            mpref.setBool('isFirst', false);
+          });
+          if (mounted) {
+            Fluttertoast.showToast(
+                msg: json1['message'],
+                toastLength: Toast.LENGTH_SHORT,
+                gravity: ToastGravity.CENTER,
+                timeInSecForIosWeb: 1,
+                backgroundColor: Colors.green,
+                textColor: Colors.white,
+                fontSize: 16.0);
+          }
+          progressDialog.show();
+          Future.delayed(const Duration(seconds: 1)).then((value) {
+            progressDialog.dismiss();
+            Navigator.pop(context);
+          });
+        } else if (json1['success'] == "2") {
+          progressDialog.dismiss();
+          Fluttertoast.showToast(
+              msg: json1['message'],
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.CENTER,
+              timeInSecForIosWeb: 1,
+              backgroundColor: Colors.red,
+              textColor: Colors.white,
+              fontSize: 16.0);
+        } else {
+          progressDialog.dismiss();
+          Fluttertoast.showToast(
+              msg: json1['message'],
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.CENTER,
+              timeInSecForIosWeb: 1,
+              backgroundColor: Colors.red,
+              textColor: Colors.white,
+              fontSize: 16.0);
+        }
+      } else {
+        progressDialog.dismiss();
+        Fluttertoast.showToast(
+            msg: json1['message'],
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.CENTER,
+            timeInSecForIosWeb: 1,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+            fontSize: 16.0);
+      }
+    }
+  }
+
+  void validateSubmitsignin() async {
+    var formstate = _formKeySignin.currentState;
+    if (formstate!.validate()) {
+      progressDialog.show();
+      var data = {
+        'phone': _phonesigninCOntroller.text,
+        'password': _password_signinCOntroller.text,
+        'is_checkout': 'yes',
+        'first_name': _fnameCOntroller.text,
+        'last_name': _lnameCOntroller.text
+      };
+      var body = json.encode(data);
+      print(body);
+      var response = await http.post(Uri.parse("${mainUrl}user-signup"),
+          headers: {
+            "Content-Type": "application/json",
+            'Accept': 'application/json',
+          },
+          body: body);
+      print(response.body);
+      final mpref = await SharedPreferences.getInstance();
+
+      Map<String, dynamic> json1 = json.decode(response.body);
+      if (response.statusCode == 200) {
+        // progressDialog.dismiss();
+        if (json1['success'] == "1") {
+          Map<String, dynamic> user = json1['user'];
+          setState(() {
+            token = json1['token'];
+            isLoggedIn = true;
+            _nameController.text = user['first_name'] + " " + user['last_name'];
+            _phoneEditingController.text = user['phone'];
+            mpref.setString("token", json1['token']);
+            mpref.setString(
+                "name", user['first_name'] + " " + user['last_name']);
+            mpref.setString("user_id", user['id'].toString());
+            mpref.setString("phone", user['phone']);
+            mpref.setString("call_phone", json1['call_phone']);
+            mpref.setString("support_email", json1['support_email']);
+            mpref.setString("orders", json1['orders'].toString());
+            mpref.setString("paybill", json1['paybill']);
+            mpref.setBool('isFirst', false);
+          });
+          if (mounted) {
+            Fluttertoast.showToast(
+                msg: json1['message'],
+                toastLength: Toast.LENGTH_SHORT,
+                gravity: ToastGravity.CENTER,
+                timeInSecForIosWeb: 1,
+                backgroundColor: Colors.green,
+                textColor: Colors.white,
+                fontSize: 16.0);
+          }
+          progressDialog.show();
+          Future.delayed(const Duration(seconds: 1)).then((value) {
+            progressDialog.dismiss();
+            Navigator.pop(context);
+          });
+        } else if (json1['success'] == "2") {
+          progressDialog.dismiss();
+          Fluttertoast.showToast(
+              msg: json1['message'],
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.CENTER,
+              timeInSecForIosWeb: 1,
+              backgroundColor: Colors.red,
+              textColor: Colors.white,
+              fontSize: 16.0);
+        } else {
+          progressDialog.dismiss();
+          Fluttertoast.showToast(
+              msg: json1['message'],
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.CENTER,
+              timeInSecForIosWeb: 1,
+              backgroundColor: Colors.red,
+              textColor: Colors.white,
+              fontSize: 16.0);
+        }
+      } else {
+        progressDialog.dismiss();
+        Fluttertoast.showToast(
+            msg: json1['message'],
+            toastLength: Toast.LENGTH_SHORT,
+            gravity: ToastGravity.CENTER,
+            timeInSecForIosWeb: 1,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+            fontSize: 16.0);
+      }
+    }
+  }
+
+  void showAwesome(message, action) {
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.info,
+      animType: AnimType.rightSlide,
+      title: 'Login Check',
+      desc: message,
+      btnCancelOnPress: () {},
+      btnOkText: action,
+      btnOkOnPress: () {
+        if (action == "Create") {
+          var texts = _nameController.text.split(' ');
+          var textf = texts[0];
+          if (texts.length > 1) {
+            var textl = texts[1];
+            if (textl.isNotEmpty) {
+              setState(() {
+                _lnameCOntroller.text = textl;
+              });
+            }
+          }
+
+          setState(() {
+            _fnameCOntroller.text = textf;
+          });
+          openDialogSignin(context);
+        } else {
+          openDialogSignin(context);
+        }
+      },
+    ).show();
+  }
+
+  void checkphone() async {
+    progressDialog.show();
+    var data = {'phone': _phoneEditingController.text};
+    var body = json.encode(data);
+    var response = await http.post(Uri.parse("${mainUrl}checkUser"),
+        headers: {
+          "Content-Type": "application/json",
+          'Accept': 'application/json',
+        },
+        body: body);
+
+    Map<String, dynamic> json1 = json.decode(response.body);
+    String name = _nameController.text.split(' ')[0];
+    progressDialog.dismiss();
+    if (response.statusCode == 200) {
+      // progressDialog.dismiss();
+      if (json1['success'] == "1") {
+        setState(() {
+          selectedItem = 0;
+          hasAccount = true;
+          _phoneloginCOntroller.text = _phoneEditingController.text;
+        });
+
+        showAwesome("Dear $name, ${json1['message']}", "Login");
+
+        // Fluttertoast.showToast(
+        //     msg: "Please login to proceed",
+        //     toastLength: Toast.LENGTH_SHORT,
+        //     gravity: ToastGravity.CENTER,
+        //     timeInSecForIosWeb: 1,
+        //     backgroundColor: Colors.green,
+        //     textColor: Colors.white,
+        //     fontSize: 16.0);
+      } else {
+        progressDialog.dismiss();
+
+        setState(() {
+          selectedItem = 1;
+          hasAccount = false;
+          _phonesigninCOntroller.text = _phoneEditingController.text;
+        });
+
+        showAwesome("Dear $name, ${json1['message']}", "Create");
+      }
+    } else {
+      progressDialog.dismiss();
+      Fluttertoast.showToast(
+          msg: json1['message'],
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0);
+    }
   }
 
   @override
@@ -335,104 +2070,207 @@ class _CheckOutPageState extends State<CheckOutPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0).copyWith(top: 10),
-                    child: Text(
-                      "Here is Your Order",
-                      style: GoogleFonts.montserrat(
-                          fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  ListView.builder(
-                    itemCount: ordersList.length,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (context, index) => Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                  if (isShow)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0).copyWith(top: 10),
+                      child: Text(
+                        "Here is Your Order",
+                        style: GoogleFonts.montserrat(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                      margin: const EdgeInsets.all(6),
-                      elevation: 3,
-                      child: Row(
-                        children: [
-                          Container(
-                            height: 90,
-                            width: 90,
-                            decoration: BoxDecoration(
-                                image: DecorationImage(
-                                    image: NetworkImage(
-                                        imageUrl + ordersList[index].image))),
-                          ),
-                          Expanded(
-                              child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(left: 4.0),
-                                child: Row(
-                                  children: [
-                                    Expanded(
+                    ),
+                  if (isShow)
+                    ListView.builder(
+                      itemCount: ordersList.length,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemBuilder: (context, index) => Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        margin: const EdgeInsets.all(6),
+                        elevation: 3,
+                        child: Row(
+                          children: [
+                            Container(
+                              height: 100,
+                              width: 90,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20),
+                                  image: DecorationImage(
+                                      image: NetworkImage(
+                                          imageUrl + ordersList[index].image),
+                                      fit: BoxFit.cover)),
+                            ),
+                            Expanded(
+                                child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 4.0),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          ordersList[index].tagName != "none"
+                                              ? ordersList[index].productname
+                                              : ordersList[index].productname,
+                                          style: GoogleFonts.montserrat(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      const SizedBox(
+                                        width: 8,
+                                      )
+                                    ],
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 4.0),
+                                  child: Row(
+                                    children: [
+                                      if (ordersList[index].tagName != "none")
+                                        Text(
+                                          "${ordersList[index].tagName} @ Ksh ",
+                                          style: GoogleFonts.montserrat(
+                                              fontSize: 12, color: Colors.grey),
+                                        )
+                                      else
+                                        Text(
+                                          " Ksh",
+                                          style: GoogleFonts.montserrat(
+                                              fontSize: 12, color: Colors.grey),
+                                        ),
+                                      if (ordersList[index].tagName != "none")
+                                        Text(
+                                          ordersList[index].amount,
+                                          style: GoogleFonts.montserrat(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold),
+                                        )
+                                      else
+                                        Row(
+                                          children: [
+                                            Text(
+                                              ordersList[index].amount,
+                                              style: GoogleFonts.montserrat(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+
+                                            Text(
+                                          " * (${(double.parse(ordersList[index].weight) * double.parse(ordersList[index].quantity)).toStringAsFixed(2)} ${ordersList[index].unitName})",
+                                              style: GoogleFonts.montserrat(
+                                                  fontSize: 18,),
+                                            ),
+                                          ],
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                if (ordersList[index].package != "none")
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8.0),
+                                    child: Container(
+                                      alignment: Alignment.topLeft,
                                       child: Text(
-                                        ordersList[index].tag_name != "none"
-                                            ? ordersList[index].productname
-                                            : ordersList[index].productname,
+                                        ordersList[index].package,
                                         style: GoogleFonts.montserrat(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold),
+                                            fontSize: 16, color: Colors.black),
+                                      ),
+                                    ),
+                                  ),
+                                Row(
+                                  children: [
+                                    InkWell(
+                                      onTap: () {
+                                        if (double.parse(
+                                                ordersList[index].quantity) >
+                                            1) {
+                                          _db
+                                              .checkexistsItem(
+                                                  ordersList[index].productId,
+                                                  ordersList[index].tagId)
+                                              .then((value) {
+                                            if (value.length > 0) {
+                                              var item = value.first;
+                                              OrderItemsModel mitem =
+                                                  OrderItemsModel(
+                                                id: item['id'],
+                                                amount: item['amount'],
+                                                category: item['category'],
+                                                package: item['package'],
+                                                image: item['image'],
+                                                unitName: item['unitName'],
+                                                productId: item['productId'],
+                                                productname:
+                                                    item['productname'],
+                                                tagId: item['tagId'],
+                                                tagName: item['tagName'],
+                                                weight: item['weight'],
+                                                packageId: item['packageId'],
+                                                quantity: (double.parse(
+                                                            item['quantity']) -
+                                                        1)
+                                                    .toString(),
+                                              );
+                                              _db.updateCart(mitem);
+                                              showToast(
+                                                  "Cart Updated", Colors.green);
+                                              ordersList.clear();
+                                              _db.getAllCarts().then((value2) {
+                                                setState(() {
+                                                  ordersList.addAll(value2);
+                                                });
+                                                getTotal();
+                                              });
+                                            }
+                                          });
+                                        } else {
+                                          _db
+                                              .deleteCart(
+                                                  ordersList[index].productId,
+                                                  ordersList[index].tagId)
+                                              .then((value) {
+                                            showToast("Item Removed from Cart",
+                                                Colors.green);
+                                            ordersList.clear();
+                                            _db.getAllCarts().then((value2) {
+                                              setState(() {
+                                                ordersList.addAll(value2);
+                                              });
+                                              getTotal();
+                                            });
+                                          });
+                                        }
+
+                                      },
+                                      child: const Card(
+                                        child:
+                                            Icon(Icons.remove_circle_outline),
                                       ),
                                     ),
                                     const SizedBox(
-                                      width: 8,
-                                    )
-                                  ],
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(left: 4.0),
-                                child: Row(
-                                  children: [
-                                    if (ordersList[index].tag_name != "none")
-                                      Text(
-                                        "${ordersList[index].tag_name} @ Ksh ",
-                                        style: GoogleFonts.montserrat(
-                                            fontSize: 12, color: Colors.grey),
-                                      )
-                                    else
-                                      Text(
-                                        " Ksh",
-                                        style: GoogleFonts.montserrat(
-                                            fontSize: 12, color: Colors.grey),
-                                      ),
-                                    if (ordersList[index].tag_name != "none")
-                                      Text(
-                                        ordersList[index].tag_price,
-                                        style: GoogleFonts.montserrat(
-                                            fontSize: 18,
-                                            color: primaryColor,
-                                            fontWeight: FontWeight.bold),
-                                      )
-                                    else
-                                      Text(
-                                        ordersList[index].amount,
-                                        style: GoogleFonts.montserrat(
-                                            fontSize: 18,
-                                            color: primaryColor,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  InkWell(
-                                    onTap: () {
-                                      if (int.parse(
-                                              ordersList[index].quantity) >
-                                          1) {
+                                      width: 4,
+                                    ),
+                                    Text(
+                                      ordersList[index].quantity,
+                                      style: GoogleFonts.montserrat(
+                                          fontSize: 18,
+                                          color: primaryColor,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(
+                                      width: 4,
+                                    ),
+                                    InkWell(
+                                      onTap: () {
                                         _db
                                             .checkexistsItem(
-                                                ordersList[index].productId)
+                                                ordersList[index].productId,
+                                                ordersList[index].tagId)
                                             .then((value) {
                                           if (value.length > 0) {
                                             var item = value.first;
@@ -441,20 +2279,23 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                               id: item['id'],
                                               amount: item['amount'],
                                               category: item['category'],
+                                              package: item['package'],
                                               image: item['image'],
+                                              unitName: item['unitName'],
                                               productId: item['productId'],
                                               productname: item['productname'],
-                                              tag_id: item['tag_id'],
-                                              tag_name: item['tag_name'],
-                                              tag_price: item['tag_price'],
-                                              quantity:
-                                                  (int.parse(item['quantity']) -
-                                                          1)
-                                                      .toString(),
+                                              tagId: item['tagId'],
+                                              tagName: item['tagName'],
+                                              weight: item['weight'],
+                                              packageId: item['packageId'],
+                                              quantity: (double.parse(
+                                                          item['quantity']) +
+                                                      1)
+                                                  .toString(),
                                             );
                                             _db.updateCart(mitem);
-                                            _showToast("Cart Updated",
-                                                Icons.check, Colors.green);
+                                            showToast(
+                                                "Cart Updated", Colors.green);
                                             ordersList.clear();
                                             _db.getAllCarts().then((value2) {
                                               setState(() {
@@ -464,371 +2305,840 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                             });
                                           }
                                         });
-                                      } else {
-                                        _db
-                                            .deleteCart(
-                                                ordersList[index].productId)
-                                            .then((value) {
-                                          _showToast("Item Removed from Cart",
-                                              Icons.check, Colors.green);
-                                          ordersList.clear();
-                                          _db.getAllCarts().then((value2) {
-                                            setState(() {
-                                              ordersList.addAll(value2);
-                                            });
-                                            getTotal();
-                                          });
-                                        });
-                                      }
-                                    },
-                                    child: const Card(
-                                      child: Icon(Icons.remove_circle_outline),
+                                      },
+                                      child: const Card(
+                                        child: Icon(
+                                            Icons.add_circle_outline_sharp),
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(
-                                    width: 4,
-                                  ),
-                                  Text(
-                                    ordersList[index].quantity,
-                                    style: GoogleFonts.montserrat(
-                                        fontSize: 18,
-                                        color: primaryColor,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(
-                                    width: 4,
-                                  ),
-                                  InkWell(
-                                    onTap: () {
-                                      _db
-                                          .checkexistsItem(
-                                              ordersList[index].productId)
-                                          .then((value) {
-                                        if (value.length > 0) {
-                                          var item = value.first;
-                                          OrderItemsModel mitem =
-                                              OrderItemsModel(
-                                            id: item['id'],
-                                            amount: item['amount'],
-                                            category: item['category'],
-                                            image: item['image'],
-                                            tag_id: item['tag_id'],
-                                            tag_name: item['tag_name'],
-                                            tag_price: item['tag_price'],
-                                            productId: item['productId'],
-                                            productname: item['productname'],
-                                            quantity:
-                                                (int.parse(item['quantity']) +
-                                                        1)
-                                                    .toString(),
-                                          );
-                                          _db.updateCart(mitem);
-                                          _showToast("Cart Updated",
-                                              Icons.check, Colors.green);
-                                          ordersList.clear();
-                                          _db.getAllCarts().then((value2) {
-                                            setState(() {
-                                              ordersList.addAll(value2);
-                                            });
-                                            getTotal();
-                                          });
-                                        }
-                                      });
-                                    },
-                                    child: const Card(
-                                      child:
-                                          Icon(Icons.add_circle_outline_sharp),
+                                    const Spacer(),
+                                    // if (ordersList[index].tagName != "none")
+                                    //   Text(
+                                    //     "Ksh ${double.parse(ordersList[index].amount) * double.parse(ordersList[index].quantity) * double.parse(ordersList[index].weight)}",
+                                    //     style: GoogleFonts.montserrat(
+                                    //         fontSize: 18,
+                                    //         color: primaryColor,
+                                    //         fontWeight: FontWeight.bold),
+                                    //   )
+                                    // else
+                                    Text(
+                                      "Ksh ${double.parse(ordersList[index].amount) * double.parse(ordersList[index].quantity)}",
+                                      style: GoogleFonts.montserrat(
+                                          fontSize: 18,
+                                          color: primaryColor,
+                                          fontWeight: FontWeight.bold),
                                     ),
-                                  )
-                                ],
-                              )
-                            ],
-                          ))
-                        ],
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0).copyWith(top: 20),
-                    child: Text(
-                      "Order Notes",
-                      style: GoogleFonts.montserrat(
-                          fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.all(8).copyWith(top: 0),
-                    decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(10)),
-                    child: TextFormField(
-                      cursorColor: primaryColor,
-                      style: GoogleFonts.montserrat(
-                        fontSize: 18,
-                      ),
-                      onChanged: (value) {},
-                      maxLines: 3,
-                      controller: _descEditingController,
-                      decoration: InputDecoration(
-                        enabledBorder: const OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 0.0),
+                                    const SizedBox(
+                                      width: 10,
+                                    )
+                                  ],
+                                )
+                              ],
+                            ))
+                          ],
                         ),
-                        focusedBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white),
-                        ),
-                        errorBorder: InputBorder.none,
-                        disabledBorder: InputBorder.none,
-                        counterText: "",
-                        contentPadding: const EdgeInsets.all(12),
-                        hintText: "Notes",
-                        hintStyle: GoogleFonts.montserrat(
-                            color: Colors.black87, fontSize: 18),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0).copyWith(top: 20),
-                    child: Text(
-                      "Delivery Address",
-                      style: GoogleFonts.montserrat(
-                          fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0).copyWith(top: 0),
-                    child: InkWell(
-                      onTap: () => showPlacePicker(),
-                      child: Card(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
+                  if (isShow)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0).copyWith(top: 20),
+                          child: Text(
+                            "Order Notes",
+                            style: GoogleFonts.montserrat(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.all(8).copyWith(top: 0),
+                          decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(10)),
+                          child: TextFormField(
+                            cursorColor: primaryColor,
+                            style: GoogleFonts.montserrat(
+                              fontSize: 18,
+                            ),
+                            onChanged: (value) {},
+                            maxLines: 3,
+                            controller: _descEditingController,
+                            decoration: InputDecoration(
+                              enabledBorder: const OutlineInputBorder(
+                                borderSide:
+                                    BorderSide(color: Colors.white, width: 0.0),
+                              ),
+                              focusedBorder: const OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.white),
+                              ),
+                              errorBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              counterText: "",
+                              contentPadding: const EdgeInsets.all(12),
+                              hintText:
+                                  "Notes (eg. How your order should be packaged)",
+                              hintStyle: GoogleFonts.montserrat(
+                                  color: primaryColor, fontSize: 18),
+                            ),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Padding(
+                              padding:
+                                  const EdgeInsets.all(8.0).copyWith(top: 20),
+                              child: Text(
+                                "Customer Details",
+                                style: GoogleFonts.montserrat(
+                                    fontSize: 20, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 15.0),
+                          child: Text(
+                            "Name",
+                            style: GoogleFonts.montserrat(),
+                          ),
+                        ),
+                        Card(
+                          margin: const EdgeInsets.all(10).copyWith(top: 5),
+                          elevation: 3,
+                          shape: selectName
+                              ? RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  side: BorderSide(color: primaryColor))
+                              : RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20)),
+                          child: TextFormField(
+                            cursorColor: primaryColor,
+                            keyboardType: TextInputType.text,
+                            style: GoogleFonts.montserrat(
+                              fontSize: 18,
+                            ),
+                            onChanged: (value) {},
+                            validator: (input) =>
+                                input!.isEmpty ? "name should be valid" : null,
+                            controller: _nameController,
+                            decoration: InputDecoration(
+                              enabledBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.white, width: 0.0),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(32))),
+                              focusedBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.white),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(32))),
+                              prefixIcon: const Icon(
+                                Icons.person,
+                                color: Colors.black87,
+                              ),
+                              errorBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              counterText: "",
+                              contentPadding: const EdgeInsets.all(12),
+                              hintText: "Enter your Name",
+                              hintStyle: GoogleFonts.montserrat(
+                                  color: Colors.grey, fontSize: 18),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 15.0),
+                          child: Text(
+                            "Phone Number",
+                            style: GoogleFonts.montserrat(),
+                          ),
+                        ),
+                        Card(
+                          margin: const EdgeInsets.all(10).copyWith(top: 5),
+                          elevation: 3,
+                          shape: selectPhone
+                              ? RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                  side: BorderSide(color: primaryColor))
+                              : RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20)),
+                          child: TextFormField(
+                            cursorColor: primaryColor,
+                            keyboardType: TextInputType.number,
+                            style: GoogleFonts.montserrat(
+                              fontSize: 18,
+                            ),
+                            maxLength: 10,
+                            onChanged: (value) {},
+                            validator: (input) =>
+                                input!.isEmpty ? "Phone should be valid" : null,
+                            controller: _phoneEditingController,
+                            decoration: InputDecoration(
+                              enabledBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.white, width: 0.0),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(32))),
+                              focusedBorder: const OutlineInputBorder(
+                                  borderSide: BorderSide(color: Colors.white),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(32))),
+                              prefixIcon: const Icon(
+                                Icons.phone,
+                                color: Colors.black87,
+                              ),
+                              errorBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              counterText: "",
+                              contentPadding: const EdgeInsets.all(12),
+                              hintText: " 0*********",
+                              hintStyle: GoogleFonts.montserrat(
+                                  color: Colors.grey, fontSize: 18),
+                            ),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Padding(
+                              padding:
+                                  const EdgeInsets.all(8.0).copyWith(top: 20),
+                              child: Text(
+                                "More Options",
+                                style: GoogleFonts.montserrat(
+                                    fontSize: 20, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              orderforFriend = !orderforFriend;
+                            });
+                          },
                           child: Row(
                             children: [
-                              const Icon(Icons.location_on_outlined),
-                              Text(
-                                location != ""
-                                    ? "$location - $landmark"
-                                    : "Current Location (Tap to change)",
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.montserrat(
-                                    fontSize: 16, color: Colors.grey),
+                              const SizedBox(
+                                width: 15,
+                              ),
+                              orderforFriend
+                                  ? const Icon(Icons.check_box)
+                                  : const Icon(Icons.check_box_outline_blank),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8.0),
+                                child: Text(
+                                  "Order for a Friend",
+                                  style: GoogleFonts.montserrat(),
+                                ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0).copyWith(top: 20),
-                    child: Text(
-                      "Payment Method",
-                      style: GoogleFonts.montserrat(
-                          fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0).copyWith(top: 0),
-                    child: Row(
-                      children: [
-                        Card(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          color: selected == 0
-                              ? Colors.grey.shade400
-                              : Colors.white,
-                          elevation: 3,
-                          child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                selected = 0;
-                              });
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: Row(
-                                children: [
+                        if (orderforFriend)
+                          const SizedBox(
+                            height: 20,
+                          ),
+                        if (orderforFriend)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 15.0),
+                            child: Text(
+                              "Friend Name",
+                              style: GoogleFonts.montserrat(),
+                            ),
+                          ),
+                        if (orderforFriend)
+                          Card(
+                            margin: const EdgeInsets.all(10).copyWith(top: 5),
+                            elevation: 3,
+                            shape: selectNameFriend
+                                ? RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    side: BorderSide(color: primaryColor))
+                                : RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                            child: TextFormField(
+                              cursorColor: primaryColor,
+                              keyboardType: TextInputType.text,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 18,
+                              ),
+                              onChanged: (value) {},
+                              validator: (input) => input!.isEmpty
+                                  ? "name should be valid"
+                                  : null,
+                              controller: _nameFriendController,
+                              decoration: InputDecoration(
+                                enabledBorder: const OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        color: Colors.white, width: 0.0),
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(32))),
+                                focusedBorder: const OutlineInputBorder(
+                                    borderSide: BorderSide(color: Colors.white),
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(32))),
+                                prefixIcon: const Icon(
+                                  Icons.person,
+                                  color: Colors.black87,
+                                ),
+                                errorBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                counterText: "",
+                                contentPadding: const EdgeInsets.all(12),
+                                hintText: "Enter your Friend's Name",
+                                hintStyle: GoogleFonts.montserrat(
+                                    color: Colors.grey, fontSize: 18),
+                              ),
+                            ),
+                          ),
+                        if (orderforFriend)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 15.0),
+                            child: Text(
+                              "Friend's Phone Number",
+                              style: GoogleFonts.montserrat(),
+                            ),
+                          ),
+                        if (orderforFriend)
+                          Card(
+                            margin: const EdgeInsets.all(10).copyWith(top: 5),
+                            elevation: 3,
+                            shape: selectPhoneFriend
+                                ? RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    side: BorderSide(color: primaryColor))
+                                : RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                            child: TextFormField(
+                              cursorColor: primaryColor,
+                              keyboardType: TextInputType.number,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 18,
+                              ),
+                              maxLength: 10,
+                              onChanged: (value) {},
+                              validator: (input) => input!.isEmpty
+                                  ? "Phone should be valid"
+                                  : null,
+                              controller: _phoneFriendEditingController,
+                              decoration: InputDecoration(
+                                enabledBorder: const OutlineInputBorder(
+                                    borderSide: BorderSide(
+                                        color: Colors.white, width: 0.0),
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(32))),
+                                focusedBorder: const OutlineInputBorder(
+                                    borderSide: BorderSide(color: Colors.white),
+                                    borderRadius:
+                                        BorderRadius.all(Radius.circular(32))),
+                                prefixIcon: const Icon(
+                                  Icons.phone,
+                                  color: Colors.black87,
+                                ),
+                                errorBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                counterText: "",
+                                contentPadding: const EdgeInsets.all(12),
+                                hintText: " 0*********",
+                                hintStyle: GoogleFonts.montserrat(
+                                    color: Colors.grey, fontSize: 18),
+                              ),
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0).copyWith(top: 20),
+                          child: Text(
+                            orderforFriend
+                                ? "Delivery Address (Your Friend's Location)"
+                                : "Delivery Address",
+                            style: GoogleFonts.montserrat(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        if (selectedDeliveryOption == 0)
+                          Padding(
+                            padding: const EdgeInsets.all(8.0).copyWith(top: 0),
+                            child: InkWell(
+                              onTap: () => _viewmoreModalBottomSheet(context),
+                              child: Card(
+                                shape: selectLocation
+                                    ? RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                        side: BorderSide(color: primaryColor))
+                                    : RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(20)),
+                                elevation: 3,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.location_on_outlined),
+                                      Expanded(
+                                        child: Text(
+                                          location != ""
+                                              ? "$landmark - $location"
+                                              : "Current Location (Tap to change)",
+                                          style: GoogleFonts.montserrat(
+                                              fontSize: 16, color: Colors.grey),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          Card(
+                            margin: const EdgeInsets.all(8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
+                            elevation: 3,
+                            child: Column(
+                              children: [
+                                Card(
+                                  color: Colors.grey.shade100,
+                                  margin:
+                                      const EdgeInsets.only(left: 0, right: 0),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Column(
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              selectedRider!.name,
+                                              style: GoogleFonts.montserrat(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18),
+                                            ),
+                                            const Spacer(),
+                                            const Icon(
+                                              Icons.radio_button_checked,
+                                              size: 30,
+                                            )
+                                          ],
+                                        ),
+                                        const SizedBox(
+                                          height: 10,
+                                        ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              "Location:",
+                                              style: GoogleFonts.montserrat(
+                                                  fontSize: 14,
+                                                  color: Colors.grey),
+                                            ),
+                                            const SizedBox(
+                                              width: 10,
+                                            ),
+                                            Text(
+                                              selectedRider!.location,
+                                              style: GoogleFonts.montserrat(),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(
+                                          height: 10,
+                                        ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              "Landmark:",
+                                              style: GoogleFonts.montserrat(
+                                                  fontSize: 14,
+                                                  color: Colors.grey),
+                                            ),
+                                            const SizedBox(
+                                              width: 10,
+                                            ),
+                                            Text(
+                                              selectedRider!.landmark,
+                                              style: GoogleFonts.montserrat(),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(
+                                          height: 10,
+                                        ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              "Contacts:",
+                                              style: GoogleFonts.montserrat(
+                                                  fontSize: 14,
+                                                  color: Colors.grey),
+                                            ),
+                                            const SizedBox(
+                                              width: 10,
+                                            ),
+                                            Text(
+                                              selectedRider!.phone,
+                                              style: GoogleFonts.montserrat(),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(
+                                          height: 10,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(
+                                  height: 10,
+                                ),
+                                if (pickuptime != "")
                                   Container(
-                                    height: 30,
-                                    width: 30,
-                                    decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        image: DecorationImage(
-                                            image: AssetImage(
-                                                "assets/images/mpesa.png"))),
+                                    alignment: Alignment.topLeft,
+                                    margin: const EdgeInsets.only(left: 8),
+                                    child: Text(
+                                      "Pickup time",
+                                      style: GoogleFonts.montserrat(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18),
+                                    ),
                                   ),
-                                  Text(
-                                    "Mpesa",
-                                    style: GoogleFonts.montserrat(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold),
+                                if (pickuptime != "")
+                                  const SizedBox(
+                                    height: 4,
                                   ),
-                                  if (selected == 0) Icon(Icons.check_circle)
-                                ],
+                                if (pickuptime != "")
+                                  Container(
+                                    alignment: Alignment.topLeft,
+                                    child: Card(
+                                      color: Colors.grey.shade200,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10)),
+                                      child: InkWell(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(4.0)
+                                              .copyWith(left: 8, right: 8),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Icons.access_time),
+                                              const SizedBox(
+                                                width: 10,
+                                              ),
+                                              Text(
+                                                pickuptime,
+                                                style: GoogleFonts.montserrat(),
+                                              )
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (pickuptime != "")
+                                  const SizedBox(
+                                    height: 10,
+                                  ),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  margin: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      border: Border.all(width: 2),
+                                      borderRadius: BorderRadius.circular(15)),
+                                  child: InkWell(
+                                    onTap: () {
+                                      _viewmoreModalBottomSheet(context);
+                                    },
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          "Change Address",
+                                          style: GoogleFonts.montserrat(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(
+                                  height: 10,
+                                ),
+                              ],
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0).copyWith(top: 20),
+                          child: Text(
+                            "Payment Method",
+                            style: GoogleFonts.montserrat(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0).copyWith(top: 0),
+                          child: Row(
+                            children: [
+                              Card(
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10)),
+                                color: selected == 0
+                                    ? Colors.grey.shade400
+                                    : Colors.white,
+                                elevation: 3,
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      selected = 0;
+                                    });
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(4.0),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          height: 30,
+                                          width: 30,
+                                          decoration: const BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              image: DecorationImage(
+                                                  image: AssetImage(
+                                                      "assets/images/mpesa.png"))),
+                                        ),
+                                        Text(
+                                          "Mpesa",
+                                          style: GoogleFonts.montserrat(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        if (selected == 0)
+                                          const Icon(Icons.check_circle)
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 10,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        ClipPath(
+                          clipper: MovieTicketBothSidesClipper(),
+                          child: Container(
+                            height: 280,
+                            color: Colors.grey.shade300,
+                            width: getWidth(context),
+                            child: Column(
+                              children: [
+                                const SizedBox(
+                                  height: 30,
+                                ),
+                                Text(
+                                  "Order Summary",
+                                  style: GoogleFonts.montserrat(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(
+                                  height: 20,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0)
+                                      .copyWith(top: 0),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          "Sub Total",
+                                          style: GoogleFonts.montserrat(
+                                              fontSize: 18),
+                                        ),
+                                      ),
+                                      Text(
+                                        "Ksh $subtotal",
+                                        style: GoogleFonts.montserrat(
+                                            fontSize: 18),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0)
+                                      .copyWith(top: 0),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          "Delivery",
+                                          style: GoogleFonts.montserrat(
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        "Ksh $deliveryfee",
+                                        style: GoogleFonts.montserrat(
+                                            fontSize: 18),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Divider(),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        "TOTAL",
+                                        style: GoogleFonts.montserrat(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                    Text(
+                                      "Ksh $total",
+                                      style: GoogleFonts.montserrat(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(
+                                  height: 20,
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    if (token != null) {
+                                      validateSubmit();
+                                    } else {
+                                      if (_nameController.text.isNotEmpty) {
+                                        if (_phoneEditingController
+                                            .text.isNotEmpty) {
+                                          checkphone();
+                                        } else {
+                                          showToast("Enter mobile number",
+                                              Colors.red);
+                                        }
+                                      } else {
+                                        showToast(
+                                            "Enter your name", Colors.red);
+                                      }
+                                    }
+                                  },
+                                  child: Card(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    color: primaryColor,
+                                    elevation: 3,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(15.0),
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            "Confirm Order",
+                                            style: GoogleFonts.montserrat(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(
+                                  height: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Column(
+                      children: [
+                        const SizedBox(
+                          height: 50,
+                        ),
+                        SizedBox(
+                          height: 120,
+                          width: 120,
+                          // decoration: const BoxDecoration(
+                          //   image: DecorationImage(image: AssetImage("assets/images/locationoff.png"),)
+                          // ),
+                          child: Image.asset(
+                            "assets/images/locationoff.png",
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Container(
+                          alignment: Alignment.center,
+                          margin: const EdgeInsets.only(top: 20),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Center(
+                              child: Text(
+                                message,
+                                style: GoogleFonts.montserrat(
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                           ),
                         ),
                         const SizedBox(
-                          width: 10,
+                          height: 20,
                         ),
-                        Card(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          color: selected == 1
-                              ? Colors.grey.shade400
-                              : Colors.white,
-                          elevation: 3,
+                        Container(
+                          margin: const EdgeInsets.all(15),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                              color: primaryColor,
+                              boxShadow: [
+                                BoxShadow(
+                                  offset: const Offset(0, 4),
+                                  color: Colors.grey.shade400,
+                                  blurRadius: 4,
+                                )
+                              ],
+                              borderRadius: BorderRadius.circular(32)),
                           child: InkWell(
                             onTap: () {
-                              setState(() {
-                                selected = 1;
-                              });
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => Outlets(),
+                                  ));
                             },
-                            child: Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    height: 30,
-                                    width: 30,
-                                    decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        image: DecorationImage(
-                                            image: AssetImage(
-                                                "assets/images/cashdelivery.png"))),
-                                  ),
-                                  Text(
-                                    "Cash",
-                                    style: GoogleFonts.montserrat(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  if (selected == 1) Icon(Icons.check_circle)
-                                ],
-                              ),
-                            ),
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  ClipPath(
-                    clipper: MovieTicketBothSidesClipper(),
-                    child: Container(
-                      height: 260,
-                      color: Colors.grey.shade300,
-                      width: getWidth(context),
-                      child: Column(
-                        children: [
-                          const SizedBox(
-                            height: 30,
-                          ),
-                          Text(
-                            "Order Summary",
-                            style: GoogleFonts.montserrat(
-                                fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0).copyWith(top: 0),
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    "Sub Total",
-                                    style: GoogleFonts.montserrat(fontSize: 18),
-                                  ),
-                                ),
                                 Text(
-                                  "Ksh $total",
-                                  style: GoogleFonts.montserrat(fontSize: 18),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(8.0).copyWith(top: 0),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    "Delivery",
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  "Ksh 0",
-                                  style: GoogleFonts.montserrat(fontSize: 18),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Divider(),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  "TOTAL",
+                                  "Explore Our Branches",
                                   style: GoogleFonts.montserrat(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold),
+                                      color: Colors.white, fontSize: 20),
                                 ),
-                              ),
-                              Text(
-                                "Ksh $total",
-                                style: GoogleFonts.montserrat(
-                                    fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                          InkWell(
-                            onTap: () {
-                              validateSubmit();
-                            },
-                            child: Card(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              color: primaryColor,
-                              elevation: 3,
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      "Confirm Order",
-                                      style: GoogleFonts.montserrat(
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              ],
                             ),
                           ),
-                          const SizedBox(
-                            height: 20,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                        ),
+                      ],
+                    )
                 ],
               ),
             ))

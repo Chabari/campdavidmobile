@@ -18,8 +18,8 @@ const Color backGround = Color(0xFFe58e9b);
 
 const kGoogleApiKey = "AIzaSyCUwQCkzVToSTN9PCH2KKuIO9MjCBzS1as";
 
-const mainUrl = "https://campdavid.silverbridge.co.ke/api/";
-const imageUrl = "https://campdavid.silverbridge.co.ke/storage/";
+const mainUrl = "https://delivery.campdavidbutchery.com/api/";
+const imageUrl = "https://delivery.campdavidbutchery.com/storage/";
 
 // const mainUrl = "http://192.168.0.105/campdavidbackend/public/api/";
 // const imageUrl = "http://192.168.0.105/campdavidbackend/storage/";
@@ -52,4 +52,14 @@ bool getElement(List<OrderItemsModel> items, id) {
     }
   });
   return isItem;
+}
+
+String getdatestringformat(String date) {
+  DateTime dat = DateTime.parse(date);
+  if (dat.day == DateTime.now().day && dat.month == DateTime.now().month) {
+    return "Today";
+  }
+  String formated = DateFormat.MMMd().format(dat).toString();
+
+  return formated;
 }

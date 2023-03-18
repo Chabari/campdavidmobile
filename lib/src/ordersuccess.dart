@@ -2,6 +2,7 @@ import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/src/mainpanel.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OrderSuccess extends StatefulWidget {
   String order_number;
@@ -10,6 +11,18 @@ class OrderSuccess extends StatefulWidget {
 }
 
 class _OrderSuccessState extends State<OrderSuccess> {
+  String? token;
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    SharedPreferences.getInstance().then((value) {
+      setState(() {
+        token = value.getString('token');
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // TODO: implement build
@@ -61,7 +74,7 @@ class _OrderSuccessState extends State<OrderSuccess> {
                       height: 20,
                     ),
                     Text(
-                      "Manage your orders in the orders page",
+                      token !=null ? "Manage your orders in the orders page" : "Login to view and manage your order",
                       style: GoogleFonts.montserrat(
                           fontSize: 14, color: Colors.grey),
                     ),

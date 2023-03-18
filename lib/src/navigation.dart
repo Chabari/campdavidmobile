@@ -217,7 +217,7 @@ class _NavigationState extends State<Navigation> {
     if (place.administrativeArea != null) {
       setState(() {
         riderLocation =
-            "${place.name!} ${place.street!} ${place.administrativeArea!}";
+            "${place.name!} ${place.street!}";
       });
     } else {
       setState(() {
@@ -393,7 +393,7 @@ class _NavigationState extends State<Navigation> {
                 circles: Set.from(
                   [
                     Circle(
-                      circleId: CircleId('currentCircle'),
+                      circleId:  CircleId('currentCircle'),
                       center: LatLng(latitude, longitude),
                       radius: 2000,
                       fillColor: Colors.blue.shade100.withOpacity(0.5),
@@ -451,25 +451,7 @@ class _NavigationState extends State<Navigation> {
                           const SizedBox(
                             width: 10,
                           ),
-                          // Container(
-                          //   width: 2,
-                          //   height: 50,
-                          //   color: Colors.black,
-                          // ),
-                          // const SizedBox(
-                          //   width: 10,
-                          // ),
-                          // Column(
-                          //   children: [
-                          //     const Icon(Icons.navigation_outlined,
-                          //         color: Colors.green),
-                          //     Text(
-                          //       "${calculateDistance(latitude, longitude, latitude2, longitude2).toStringAsFixed(2)} KM",
-                          //       style: GoogleFonts.montserrat(
-                          //           fontSize: 16, fontWeight: FontWeight.bold),
-                          //     ),
-                          //   ],
-                          // ),
+                          
                         ],
                       ),
                     ),
@@ -479,93 +461,77 @@ class _NavigationState extends State<Navigation> {
                 bottom: 0,
                 right: 0,
                 left: 0,
-                child: Stack(
-                  children: [
-                    Card(
+                child: Card(
                       shape: const RoundedRectangleBorder(
                           borderRadius: BorderRadius.only(
                               topLeft: Radius.circular(32),
                               topRight: Radius.circular(32))),
-                      child: Padding(
+                  child: Stack(
+                    children: [
+                      Padding(
                         padding: const EdgeInsets.all(10.0),
                         child: Column(
                           children: [
-                            // Padding(
-                            //   padding:
-                            //       const EdgeInsets.all(8.0).copyWith(bottom: 0),
-                            //   child: Row(
-                            //     children: [
-                            //       Expanded(
-                            //         child: Text(
-                            //           widget.orderList.driver,
-                            //           style: GoogleFonts.montserrat(
-                            //               fontSize: 16,
-                            //               fontWeight: FontWeight.bold),
-                            //         ),
-                            //       ),
-                            //       Container(
-                            //         height: 30,
-                            //         width: 2,
-                            //         color: Colors.grey,
-                            //       ),
-                            //       const SizedBox(
-                            //         width: 15,
-                            //       ),
-                            //       InkWell(
-                            //         onTap: () => _launchWhatsapp(
-                            //             widget.orderList.driver_phone),
-                            //         child: const Icon(
-                            //           Icons.call,
-                            //         ),
-                            //       ),
-                            //       const SizedBox(
-                            //         width: 7,
-                            //       )
-                            //     ],
-                            //   ),
-                            // ),
-                            // const Divider(),
 
-                            const SizedBox(
-                              height: 10,
+                            Text(
+                                  "Here is your rider details: ",
+                                  style: GoogleFonts.montserrat(
+                                      fontSize: 18, color: primaryColor),
+                                ),
+
+                             const SizedBox(
+                              height: 20,
                             ),
+
                             Row(
                               children: [
-                                Text(
-                                  "Driver Name: ",
-                                  style: GoogleFonts.montserrat(
-                                      fontSize: 16, color: Colors.grey),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  height: 70,
+                                  width: 70,
+                                  decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      image: DecorationImage(
+                                          image: NetworkImage(imageUrl +
+                                              widget.orderList.driver_photo)),
+                                      color: Colors.grey.shade200),
                                 ),
-                                const Spacer(),
-                                Text(
-                                  widget.orderList.driver,
-                                  style: GoogleFonts.montserrat(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(
+                                const SizedBox(width: 10,),
+                                Expanded(child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          widget.orderList.driver,
+                                          style: GoogleFonts.montserrat(
+                                              fontSize: 16, color: Colors.grey),
+                                        ),
+                                        const Spacer(),
+                                        Text(
+                                          widget.orderList.numberPlate,
+                                          style: GoogleFonts.montserrat(
+                                              fontSize: 14, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+
+                             const SizedBox(
                               height: 8,
                             ),
-                            Row(
-                              children: [
-                                Text(
-                                  "Phone: ",
+                                    Text(
+                                  widget.orderList.driver_phone,
                                   style: GoogleFonts.montserrat(
-                                      fontSize: 16, color: Colors.grey),
+                                      fontSize: 16, fontWeight: FontWeight.bold),
                                 ),
-                                const Spacer(),
-                                Text(
-                                  "${widget.orderList.driver_phone}",
-                                  style: GoogleFonts.montserrat(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold),
-                                ),
+                                  ],
+                                ))
                               ],
                             ),
-                            const SizedBox(
-                              height: 8,
+                           
+                
+                             const SizedBox(
+                              height: 12,
                             ),
                             Row(
                               children: [
@@ -585,7 +551,7 @@ class _NavigationState extends State<Navigation> {
                               ],
                             ),
                             const Divider(),
-
+                
                             Card(
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
@@ -612,18 +578,9 @@ class _NavigationState extends State<Navigation> {
                           ],
                         ),
                       ),
-                    ),
-                  Positioned(
-                    top: 0,
-                    
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.grey.shade200
-                    ),
-                  ))
-                  ],
+                      
+                    ],
+                  ),
                 )),
           ],
         ),

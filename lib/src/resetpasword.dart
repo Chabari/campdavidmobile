@@ -11,6 +11,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
 class ResetPassword extends StatefulWidget {
+  String phone;
+  ResetPassword({required this.phone});
   _ResetPasswordState createState() => _ResetPasswordState();
 }
 
@@ -25,6 +27,11 @@ class _ResetPasswordState extends State<ResetPassword> {
     super.initState();
     fToast = FToast();
     fToast.init(context);
+    if (widget.phone != "") {
+      setState(() {
+        _phoneCOntroller.text = widget.phone;
+      });
+    }
     progressDialog = ArsProgressDialog(context,
         blur: 2,
         backgroundColor: const Color(0x33000000),
@@ -232,12 +239,12 @@ class _ResetPasswordState extends State<ResetPassword> {
                   child: InkWell(
                     onTap: () {
                       validateSubmit();
-                //       Navigator.pushReplacement(
-                // context,
-                // MaterialPageRoute(
-                //   builder: (context) =>
-                //       PhoneVerification(phone: _phoneCOntroller.text),
-                // ));
+                      //       Navigator.pushReplacement(
+                      // context,
+                      // MaterialPageRoute(
+                      //   builder: (context) =>
+                      //       PhoneVerification(phone: _phoneCOntroller.text),
+                      // ));
                     },
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,

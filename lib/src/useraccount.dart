@@ -6,6 +6,7 @@ import 'package:campdavid/src/editprofile.dart';
 import 'package:campdavid/src/login.dart';
 import 'package:campdavid/src/orderspage.dart';
 import 'package:campdavid/src/resetpasword.dart';
+import 'package:campdavid/src/returnpolicy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_custom_clippers/flutter_custom_clippers.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,7 +20,7 @@ class UserAccount extends StatefulWidget {
 
 class _UserAccountState extends State<UserAccount> {
   bool selected = false;
-  String call_phone = "0720763863";
+  String call_phone = "0714532554";
   String support_email = "info@campdavidbutchery.com";
   String token = "";
   String name = "";
@@ -87,30 +88,20 @@ class _UserAccountState extends State<UserAccount> {
           'Accept': 'application/json'
         },
         body: body);
-    print(response.body);
     Map<String, dynamic> json1 = json.decode(response.body);
+    final mpref = await SharedPreferences.getInstance();
     if (response.statusCode == 200) {
+      Map<String, dynamic> user = json1['user'];
       if (json1['success'] == "1") {
-        setState(() {
-          orders = json1['orders'].toString();
-        });
-      } else {
-        Future.delayed(const Duration(seconds: 1)).then((value) {
-          Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => LoginScreen(from: "main"),
-              ));
-        });
+        if (mounted) {
+          setState(() {
+            orders = json1['orders'].toString();
+            mpref.setString(
+                "name", user['first_name'] + " " + user['last_name']);
+            mpref.setString("phone", user['phone']);
+          });
+        }
       }
-    } else {
-      Future.delayed(const Duration(seconds: 1)).then((value) {
-        Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => LoginScreen(from: "main"),
-            ));
-      });
     }
   }
 
@@ -289,7 +280,7 @@ class _UserAccountState extends State<UserAccount> {
                 onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ResetPassword(),
+                      builder: (context) => ResetPassword(phone: ""),
                     )),
                 leading: Container(
                   padding: const EdgeInsets.all(4),
@@ -461,6 +452,40 @@ class _UserAccountState extends State<UserAccount> {
               trailing: const Icon(Icons.arrow_forward_ios_outlined),
             ),
           ),
+          Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            elevation: 3,
+            margin: const EdgeInsets.all(4),
+            child: ListTile(
+              onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ReturnPolicy(),
+                  )),
+              leading: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                    color: primaryColor,
+                    borderRadius: BorderRadius.circular(10)),
+                child: const Icon(
+                  Icons.policy,
+                  color: Colors.white,
+                ),
+              ),
+              title: Text(
+                "Return Policy",
+                style: GoogleFonts.montserrat(
+                    fontWeight: FontWeight.bold, fontSize: 20),
+              ),
+              subtitle: Text(
+                "View our return policy here",
+                style: GoogleFonts.montserrat(color: Colors.grey, fontSize: 12),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios_outlined),
+            ),
+          ),
           const SizedBox(
             height: 10,
           ),
@@ -475,13 +500,13 @@ class _UserAccountState extends State<UserAccount> {
                     width: 150,
                     child: InkWell(
                       onTap: () {
-                         mprefs.clear().then((value) {
-                                    Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => LoginScreen(from: "me"),
-                                    ));
-                                  });
+                        mprefs.clear().then((value) {
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => LoginScreen(from: "me"),
+                              ));
+                        });
                       },
                       child: Card(
                         shape: RoundedRectangleBorder(

@@ -1,8 +1,52 @@
 import 'package:campdavid/src/splashscreen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:get/get.dart';
+import 'package:in_app_update/in_app_update.dart';
 
-void main() {
-  runApp(const MyApp());
+import 'helpers/categorycontroller.dart';
+import 'helpers/homecontroller.dart';
+import 'helpers/notification_service.dart';
+import 'helpers/searchpagecontroller.dart';
+
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+    
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  await initdependencies();
+  int? _orderID;
+
+  try {
+    final NotificationAppLaunchDetails? notificationAppLaunchDetails =
+        await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+    if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
+      String? selectedNotificationPayload =
+          notificationAppLaunchDetails!.notificationResponse?.payload;
+    }
+    final RemoteMessage? remoteMessage =
+        await FirebaseMessaging.instance.getInitialMessage();
+    if (remoteMessage != null) {
+      _orderID = remoteMessage.notification!.titleLocKey != null
+          ? int.parse(remoteMessage.notification!.titleLocKey!)
+          : null;
+    }
+    await NotificationHelper.initialize(flutterLocalNotificationsPlugin);
+    FirebaseMessaging.onBackgroundMessage(myBackgroundMessageHandler);
+  } catch (e) {}
+
+  runApp(MyApp());
+}
+
+
+Future initdependencies() async {
+  Get.lazyPut(() => HomeController());
+  Get.lazyPut(() => CategoryController());
 }
 
 class MyApp extends StatelessWidget {

@@ -13,6 +13,8 @@ import '../helpers/cartmodel.dart';
 import '../helpers/databaseHelper.dart';
 
 class CartPage extends StatefulWidget {
+  Function(int) screen;
+  CartPage({required this.screen});
   _CartPageState createState() => _CartPageState();
 }
 
@@ -54,15 +56,18 @@ class _CartPageState extends State<CartPage> {
 
   void getTotal() {
     total = 0;
-    ordersList.forEach((element) {
-      if (element.tag_name != 'none') {
-        total +=
-            (double.parse(element.tag_price) * double.parse(element.quantity));
-      } else {
+    for (var element in ordersList) {
+      setState(() {
         total +=
             (double.parse(element.amount) * double.parse(element.quantity));
-      }
-    });
+      });
+      // if (element.tagName != 'none') {
+        
+      // } else {
+      //   total +=
+      //       (double.parse(element.amount) * double.parse(element.quantity));
+      // }
+    }
     setState(() {
       text = "Proceed to checkout Ksh $total ";
     });
@@ -160,6 +165,7 @@ class _CartPageState extends State<CartPage> {
                 const SizedBox(
                   height: 20,
                 ),
+                if(ordersList.length > 0)
                 ListView.builder(
                   shrinkWrap: true,
                   itemCount: ordersList.length,
@@ -176,6 +182,7 @@ class _CartPageState extends State<CartPage> {
                           height: 90,
                           width: 90,
                           decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
                               image: DecorationImage(
                                   image: NetworkImage(
                                       imageUrl + ordersList[index].image))),
@@ -191,7 +198,7 @@ class _CartPageState extends State<CartPage> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      ordersList[index].tag_name != "none"
+                                      ordersList[index].tagName != "none"
                                           ? ordersList[index].productname
                                           : ordersList[index].productname,
                                       style: GoogleFonts.montserrat(
@@ -203,7 +210,7 @@ class _CartPageState extends State<CartPage> {
                                     onTap: () {
                                       _db
                                           .deleteCart(
-                                              ordersList[index].productId)
+                                              ordersList[index].productId, ordersList[index].tagId)
                                           .then((value) {
                                         ordersList.clear();
                                         _db.getAllCarts().then((value2) {
@@ -231,9 +238,9 @@ class _CartPageState extends State<CartPage> {
                               padding: const EdgeInsets.only(left: 4.0),
                               child: Row(
                                 children: [
-                                  if (ordersList[index].tag_name != "none")
+                                  if (ordersList[index].tagName != "none")
                                     Text(
-                                      "${ordersList[index].tag_name} @ Ksh ",
+                                      "${ordersList[index].tagName} @ Ksh ",
                                       style: GoogleFonts.montserrat(
                                           fontSize: 12, color: Colors.grey),
                                     )
@@ -243,21 +250,29 @@ class _CartPageState extends State<CartPage> {
                                       style: GoogleFonts.montserrat(
                                           fontSize: 12, color: Colors.grey),
                                     ),
-                                  if (ordersList[index].tag_name != "none")
-                                    Text(
-                                      ordersList[index].tag_price,
-                                      style: GoogleFonts.montserrat(
-                                          fontSize: 18,
-                                          color: primaryColor,
-                                          fontWeight: FontWeight.bold),
-                                    )
-                                  else
+                                  if (ordersList[index].tagName != "none")
                                     Text(
                                       ordersList[index].amount,
                                       style: GoogleFonts.montserrat(
                                           fontSize: 18,
-                                          color: primaryColor,
                                           fontWeight: FontWeight.bold),
+                                    )
+                                  else
+                                    Row(
+                                      children: [
+                                        Text(
+                                          ordersList[index].amount,
+                                          style: GoogleFonts.montserrat(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+
+                                        Text(
+                                          " * ${(double.parse(ordersList[index].weight) * double.parse(ordersList[index].quantity)).toStringAsFixed(2)} ${ordersList[index].unitName}",
+                                          style: GoogleFonts.montserrat(
+                                              fontSize: 12, color: Colors.grey),
+                                        ),
+                                      ],
                                     ),
                                 ],
                               ),
@@ -266,11 +281,11 @@ class _CartPageState extends State<CartPage> {
                               children: [
                                 InkWell(
                                   onTap: () {
-                                    if (int.parse(ordersList[index].quantity) >
+                                    if (double.parse(ordersList[index].quantity) >
                                         1) {
                                       _db
                                           .checkexistsItem(
-                                              ordersList[index].productId)
+                                              ordersList[index].productId, ordersList[index].tagId)
                                           .then((value) {
                                         if (value.length > 0) {
                                           var item = value.first;
@@ -279,14 +294,17 @@ class _CartPageState extends State<CartPage> {
                                             id: item['id'],
                                             amount: item['amount'],
                                             category: item['category'],
+                                            package: item['package'],
                                             image: item['image'],
                                             productId: item['productId'],
                                             productname: item['productname'],
-                                            tag_id: item['tag_id'],
-                                            tag_name: item['tag_name'],
-                                            tag_price: item['tag_price'],
+                                            tagId: item['tagId'],
+                                            unitName: item['unitName'],
+                                            tagName: item['tagName'],
+                                            weight: item['weight'],
+                                            packageId: item['packageId'],
                                             quantity:
-                                                (int.parse(item['quantity']) -
+                                                (double.parse(item['quantity']) -
                                                         1)
                                                     .toString(),
                                           );
@@ -304,7 +322,7 @@ class _CartPageState extends State<CartPage> {
                                     } else {
                                       _db
                                           .deleteCart(
-                                              ordersList[index].productId)
+                                              ordersList[index].productId, ordersList[index].tagId)
                                           .then((value) {
                                         ordersList.clear();
                                         _db.getAllCarts().then((value2) {
@@ -337,22 +355,25 @@ class _CartPageState extends State<CartPage> {
                                   onTap: () {
                                     _db
                                         .checkexistsItem(
-                                            ordersList[index].productId)
+                                            ordersList[index].productId, ordersList[index].tagId)
                                         .then((value) {
                                       if (value.length > 0) {
                                         var item = value.first;
                                         OrderItemsModel mitem = OrderItemsModel(
                                           id: item['id'],
-                                          amount: item['amount'],
-                                          category: item['category'],
-                                          image: item['image'],
-                                          productId: item['productId'],
-                                          productname: item['productname'],
-                                          tag_id: item['tag_id'],
-                                          tag_name: item['tag_name'],
-                                          tag_price: item['tag_price'],
+                                            amount: item['amount'],
+                                            category: item['category'],
+                                            package: item['package'],
+                                            unitName: item['unitName'],
+                                            image: item['image'],
+                                            productId: item['productId'],
+                                            productname: item['productname'],
+                                            tagId: item['tagId'],
+                                            tagName: item['tagName'],
+                                            weight: item['weight'],
+                                            packageId: item['packageId'],
                                           quantity:
-                                              (int.parse(item['quantity']) + 1)
+                                              (double.parse(item['quantity']) + 1)
                                                   .toString(),
                                         );
                                         _db.updateCart(mitem);
@@ -371,6 +392,26 @@ class _CartPageState extends State<CartPage> {
                                     child: Icon(Icons.add_circle_outline_sharp),
                                   ),
                                 )
+                                ,
+                                const Spacer(),
+                                if (ordersList[index].tagName != "none")
+                                  Text(
+                                    "Ksh ${double.parse(ordersList[index].amount) * double.parse(ordersList[index].quantity)}",
+                                    style: GoogleFonts.montserrat(
+                                        fontSize: 18,
+                                          color: primaryColor,
+                                        fontWeight: FontWeight.bold),
+                                  )
+                                else
+                                  Text(
+                                    "Ksh ${double.parse(ordersList[index].amount) * double.parse(ordersList[index].quantity)}",
+                                    style: GoogleFonts.montserrat(
+                                        fontSize: 18,
+                                          color: primaryColor,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                
+                                    const SizedBox(width: 10,)
                               ],
                             )
                           ],
@@ -378,57 +419,106 @@ class _CartPageState extends State<CartPage> {
                       ],
                     ),
                   ),
-                ),
+                )
+                else
+                  Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 30,),
+                          Text(
+                            "Your cart is empty. ",
+                            style: GoogleFonts.montserrat(
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 20,),
+                          Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            color: primaryColor,
+                            elevation: 3,
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  widget.screen(1);
+                                });
+                  
+                                
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      "Start Shopping",
+                                      style: GoogleFonts.montserrat(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 const SizedBox(
                   height: 150,
                 )
               ],
             ),
           ),
-          Positioned(
-            bottom: 0,
-            right: 0,
-            left: 0,
-            child: ClipPath(
-              clipper: MovieTicketBothSidesClipper(),
-              child: Container(
-                height: 100,
-                color: Colors.grey.shade300,
-                child: Center(
-                  child: SizedBox(
-                    width: getWidth(context),
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      color: primaryColor,
-                      elevation: 3,
-                      child: InkWell(
-                        onTap: () {
-                          if (isLogged) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => CheckOutPage(),
-                              ));
-                          } else {
-                            _onAlertButtonsPressed(context);
-                          }
-                          
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                text,
-                                style: GoogleFonts.montserrat(
-                                  color: Colors.white,
+          if(ordersList.length > 0)
+            Positioned(
+              bottom: 0,
+              right: 0,
+              left: 0,
+              child: ClipPath(
+                clipper: MovieTicketBothSidesClipper(),
+                child: Container(
+                  height: 100,
+                  color: Colors.grey.shade300,
+                  child: Center(
+                    child: SizedBox(
+                      width: getWidth(context),
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        color: primaryColor,
+                        elevation: 3,
+                        child: InkWell(
+                          onTap: () {
+                            // if (isLogged) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CheckOutPage(),
+                                ));
+                            // } else {
+                            //   _onAlertButtonsPressed(context);
+                            // }
+                            
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  text,
+                                  style: GoogleFonts.montserrat(
+                                    color: Colors.white,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -436,8 +526,7 @@ class _CartPageState extends State<CartPage> {
                   ),
                 ),
               ),
-            ),
-          )
+            )
         ],
       ),
     );

@@ -1,0 +1,179 @@
+{
+  "project_info": {
+    "project_number": "792547666707",
+    "firebase_url": "https://loaning-e3739.firebaseio.com",
+    "project_id": "loaning-e3739",
+    "storage_bucket": "loaning-e3739.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:792547666707:android:865bcc3cf02de024a9c8e6",
+        "android_client_info": {
+          "package_name": "com.campdavid.campdavid"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "792547666707-jjrh8nnjbu9usuocf7ooijpf5u568aok.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZu9Ip1Gj9Pg3x_Lghvs_TIyNh78e_mrI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "792547666707-jjrh8nnjbu9usuocf7ooijpf5u568aok.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "792547666707-fcn7ja5p2ml8fv6g1d337hfe5bngt921.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.campdelivery"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:792547666707:android:08007c2b66f9c32ba9c8e6",
+        "android_client_info": {
+          "package_name": "com.campdaviddelivery"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "792547666707-jjrh8nnjbu9usuocf7ooijpf5u568aok.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZu9Ip1Gj9Pg3x_Lghvs_TIyNh78e_mrI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "792547666707-jjrh8nnjbu9usuocf7ooijpf5u568aok.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "792547666707-fcn7ja5p2ml8fv6g1d337hfe5bngt921.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.campdelivery"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:792547666707:android:7a6fa09232673a4da9c8e6",
+        "android_client_info": {
+          "package_name": "com.loaning"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "792547666707-1sfccp6dhu517cpqajsuq1nfo49o0l7p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.loaning",
+            "certificate_hash": "ba1ca38b9d847b4b53471064e0bf25400b934f09"
+          }
+        },
+        {
+          "client_id": "792547666707-8ni2dk6bgn885deq248nhqt3sk7tap5p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.loaning",
+            "certificate_hash": "bf299a5b7e922465ad5a1809257e344e7bcaaabb"
+          }
+        },
+        {
+          "client_id": "792547666707-av9se40stu0vf1cqmr30bldd011ui7ig.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.loaning",
+            "certificate_hash": "7b79285e0cc7a6256bbecd503363276e0ff8350f"
+          }
+        },
+        {
+          "client_id": "792547666707-jjrh8nnjbu9usuocf7ooijpf5u568aok.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZu9Ip1Gj9Pg3x_Lghvs_TIyNh78e_mrI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "792547666707-jjrh8nnjbu9usuocf7ooijpf5u568aok.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "792547666707-fcn7ja5p2ml8fv6g1d337hfe5bngt921.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.campdelivery"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:792547666707:android:d292a5ae4613eee2a9c8e6",
+        "android_client_info": {
+          "package_name": "com.technikh.imagetextgrabber"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "792547666707-jjrh8nnjbu9usuocf7ooijpf5u568aok.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDZu9Ip1Gj9Pg3x_Lghvs_TIyNh78e_mrI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "792547666707-jjrh8nnjbu9usuocf7ooijpf5u568aok.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "792547666707-fcn7ja5p2ml8fv6g1d337hfe5bngt921.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.campdelivery"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

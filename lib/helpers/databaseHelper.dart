@@ -22,7 +22,7 @@ class DBHelper {
 
   initDB() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, "cart_db.db");
+    String path = join(documentsDirectory.path, "newcartdb.db");
     return await openDatabase(path, version: 1, onOpen: (db) {},
         onCreate: (Database db, int version) async {
       
@@ -32,9 +32,12 @@ class DBHelper {
           "quantity TEXT,"
           "productId TEXT,"
           "productname TEXT,"
-          "tag_id TEXT,"
-          "tag_name TEXT,"
-          "tag_price TEXT,"
+          "tagId TEXT,"
+          "unitName TEXT,"
+          "tagName TEXT,"
+          "package TEXT,"
+          "packageId TEXT,"
+          "weight TEXT,"
           "image TEXT,"
           "category TEXT"
           ")");
@@ -52,16 +55,17 @@ class DBHelper {
     return raw;
   }
 
+
   Future updateCart(OrderItemsModel cartlist) async {
     final db = await database;
     var res = await db?.update("Cartdb", cartlist.toMap(),
-        where: "productId = ?", whereArgs: [cartlist.productId]);
+        where: "productId = ? and tagId = ?", whereArgs: [cartlist.productId, cartlist.tagId]);
     return res;
   }
 
-  Future checkexistsItem(String name) async {
+  Future checkexistsItem(String name, tagId) async {
     final db = await database;
-    var result = await db?.query('Cartdb', where: 'productId = ?', whereArgs: [name]);
+    var result = await db?.query('Cartdb', where: 'productId = ? and tagId = ?', whereArgs: [name, tagId]);
     return result;
   }
 
@@ -74,9 +78,9 @@ class DBHelper {
   }
 
 
-  Future deleteCart(String id) async {
+  Future deleteCart(String id, String tagId) async {
     final db = await database;
-    return db?.delete("Cartdb", where: "productId = ?", whereArgs: [id]);
+    return db?.delete("Cartdb", where: "productId = ? and tagId = ?", whereArgs: [id, tagId]);
   }
  
   Future deleteAll() async {

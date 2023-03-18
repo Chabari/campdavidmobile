@@ -5,10 +5,13 @@ import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/src/checkout.dart';
 import 'package:campdavid/src/mainpanel.dart';
 import 'package:campdavid/src/resetpasword.dart';
+import 'package:campdavid/src/setpassword.dart';
 import 'package:campdavid/src/signup.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -24,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool obscure = true;
   late ArsProgressDialog progressDialog;
   late FToast fToast;
+  var _deviceToken;
   final _formKey = GlobalKey<FormState>();
   late SharedPreferences mprefs;
 
@@ -47,16 +51,18 @@ class _LoginScreenState extends State<LoginScreen> {
     //           builder: (context) => MainPanel(),
     //         ));
     //   }
-    // });
+    // });_formKey
   }
 
   void validateSubmit() async {
     var formstate = _formKey.currentState;
+        _deviceToken = await FirebaseMessaging.instance.getToken();
     if (formstate!.validate()) {
       progressDialog.show();
       var data = {
         'password': _passwordCOntroller.text,
-        'phone': _phoneCOntroller.text
+        'phone': _phoneCOntroller.text,
+        'token': _deviceToken
       };
       var body = json.encode(data);
       print(body);
@@ -82,10 +88,11 @@ class _LoginScreenState extends State<LoginScreen> {
             mpref.setString("call_phone", json1['call_phone']);
             mpref.setString("support_email", json1['support_email']);
             mpref.setString("orders", json1['orders'].toString());
+          mpref.setString("paybill", json1['paybill']);
             mpref.setBool('isFirst', false);
           });
           if (mounted) {
-            _showToast(fToast, json1['message'], Colors.green, Icons.check);
+            showtoast(json1['message'], Colors.green);
           }
           if (widget.from == "check") {
             Navigator.pushReplacement(
@@ -100,14 +107,76 @@ class _LoginScreenState extends State<LoginScreen> {
                   builder: (context) => MainPanel(),
                 ));
           }
+        } else if (json1['success'] == "2") {
+          _onAlertButtonsPressed(
+            context,
+            json1['message']
+          );
         } else {
-          _showToast(fToast, json1['message'], Colors.red, Icons.cancel);
+          showtoast(json1['message'], Colors.red);
         }
       } else {
         progressDialog.dismiss();
-        _showToast(fToast, json1['message'], Colors.red, Icons.cancel);
+        showtoast(json1['message'], Colors.red);
       }
     }
+  }
+
+  void showtoast(message, Color color){
+    Fluttertoast.showToast(
+        msg: message,
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 1,
+        backgroundColor: color,
+        textColor: Colors.white,
+        fontSize: 16.0
+    );
+  }
+
+
+
+  _onAlertButtonsPressed(context, message) {
+    Alert(
+      context: context,
+      type: AlertType.warning,
+      style: AlertStyle(
+        backgroundColor: Colors.white,
+        titleStyle: GoogleFonts.lato(
+            color: primaryColor, fontSize: 25, fontWeight: FontWeight.bold),
+        descStyle: GoogleFonts.lato(color: Colors.grey, fontSize: 18),
+      ),
+      title: "Failed!",
+      desc: message,
+      buttons: [
+        DialogButton(
+          child: Text(
+            "CANCEL",
+            style: GoogleFonts.lato(color: Colors.white, fontSize: 18),
+          ),
+          onPressed: () => Navigator.pop(context),
+          color: Colors.black,
+        ),
+        DialogButton(
+          child: Text(
+            "SET",
+            style: GoogleFonts.lato(color: Colors.white, fontSize: 18),
+          ),
+          onPressed: () {
+            Navigator.pop(context);
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SetPassword(phone: _phoneCOntroller.text),
+                ));
+          },
+          gradient: const LinearGradient(colors: [
+            secondaryColor,
+            primaryColor,
+          ]),
+        )
+      ],
+    ).show();
   }
 
   _showToast(fToast, message, color, icon) {
@@ -346,7 +415,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ResetPassword(),
+                            builder: (context) => ResetPassword(phone: ""),
                           )),
                       child: Container(
                         margin: const EdgeInsets.only(right: 10),

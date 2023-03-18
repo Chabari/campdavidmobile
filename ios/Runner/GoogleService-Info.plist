@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>792547666707-7ntddiu6lcc4fo0nrjr85t5s971s6ovk.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.792547666707-7ntddiu6lcc4fo0nrjr85t5s971s6ovk</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>792547666707-1sfccp6dhu517cpqajsuq1nfo49o0l7p.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyCINDD_GVzjK9Q4-VBjNXSrsualke39sBA</string>
+	<key>GCM_SENDER_ID</key>
+	<string>792547666707</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.campdavid.campdavid</string>
+	<key>PROJECT_ID</key>
+	<string>loaning-e3739</string>
+	<key>STORAGE_BUCKET</key>
+	<string>loaning-e3739.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:792547666707:ios:143f9dd67c4114c7a9c8e6</string>
+	<key>DATABASE_URL</key>
+	<string>https://loaning-e3739.firebaseio.com</string>
+</dict>
+</plist>

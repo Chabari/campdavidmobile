@@ -79,12 +79,15 @@ class _SetPasswordState extends State<SetPassword> {
       progressDialog.show();
       var data = {'phone': widget.phone, 'password': _passwordCOntroller.text};
       var body = json.encode(data);
+      print(body);
       var response = await http.post(Uri.parse("${mainUrl}setPassword"),
           headers: {
             "Content-Type": "application/json",
             'Accept': 'application/json',
           },
           body: body);
+
+      print(response.body);
 
       Map<String, dynamic> json1 = json.decode(response.body);
       if (response.statusCode == 200) {
@@ -102,9 +105,8 @@ class _SetPasswordState extends State<SetPassword> {
           _showToast(fToast, json1['message'], Colors.red, Icons.cancel);
         }
       }
-    }else{
-          _showToast(fToast, "Provide your new password", Colors.red, Icons.cancel);
-
+    } else {
+      _showToast(fToast, "Provide your new password", Colors.red, Icons.cancel);
     }
   }
 

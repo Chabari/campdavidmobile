@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:campdavid/helpers/cartmodel.dart';
 import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/src/cartpage.dart';
 import 'package:campdavid/src/category.dart';
+import 'package:campdavid/src/checkout.dart';
 import 'package:campdavid/src/home.dart';
 import 'package:campdavid/src/searchpage.dart';
 import 'package:campdavid/src/useraccount.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:in_app_update/in_app_update.dart';
 import 'package:rolling_bottom_bar/rolling_bottom_bar.dart';
 import 'package:rolling_bottom_bar/rolling_bottom_bar_item.dart';
 
@@ -22,21 +27,66 @@ class _MainPanelState extends State<MainPanel> {
   List<OrderItemsModel> ordersList = [];
   final DBHelper _db = DBHelper();
 
+  GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey();
+
+  AppUpdateInfo? _updateInfo;
+
+  bool _flexibleUpdateAvailable = false;
+
+  // Platform messages are asynchronous, so we initialize in an async method.
+  Future<void> checkForUpdate() async {
+    InAppUpdate.checkForUpdate().then((info) {
+      setState(() {
+        _updateInfo = info;
+      });
+      if (_updateInfo?.updateAvailability ==
+          UpdateAvailability.updateAvailable) {
+        InAppUpdate.startFlexibleUpdate().then((_) {
+          setState(() {
+            _flexibleUpdateAvailable = true;
+          });
+        }).catchError((e) {
+          showSnack(e.toString());
+        });
+      }
+    }).catchError((e) {
+      showSnack(e.toString());
+    });
+  }
+
+  void showSnack(String text) {
+    if (_scaffoldKey.currentContext != null) {
+      ScaffoldMessenger.of(_scaffoldKey.currentContext!)
+          .showSnackBar(SnackBar(content: Text(text)));
+    }
+  }
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-
+    checkForUpdate();
     _db.getAllCarts().then((scans) {
       setState(() {
-        ordersList.addAll(scans);
+        ordersList = scans;
       });
+    });
+
+    Timer.periodic(const Duration(seconds: 4), (Timer timer) {
+      if (mounted) {
+        _db.getAllCarts().then((scans) {
+          setState(() {
+            ordersList = scans;
+          });
+        });
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: primaryColor,
       body: SizedBox(
         height: getHeight(context),
@@ -79,11 +129,27 @@ class _MainPanelState extends State<MainPanel> {
                     //     color: Colors.white, size: 30),
                     InkWell(
                         onTap: () {
-                          _controller.animateToPage(
-                            2,
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeOut,
-                          );
+                          // _controller.animateToPage(
+                          //   2,
+                          //   duration: const Duration(milliseconds: 400),
+                          //   curve: Curves.easeOut,
+                          // );
+                          if (ordersList.length > 0) {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => CheckOutPage(),
+                                ));
+                          } else {
+                            Fluttertoast.showToast(
+                                msg: "Failed. Please add something to cart",
+                                toastLength: Toast.LENGTH_SHORT,
+                                gravity: ToastGravity.CENTER,
+                                timeInSecForIosWeb: 1,
+                                backgroundColor: Colors.red,
+                                textColor: Colors.white,
+                                fontSize: 16.0);
+                          }
                         },
                         child: Stack(
                           children: [
@@ -112,68 +178,9 @@ class _MainPanelState extends State<MainPanel> {
                   ],
                 ),
               ),
-
               const SizedBox(
                 height: 10,
               ),
-
-              // Container(
-              //   margin: const EdgeInsets.only(left: 8),
-              //   child: Column(
-              //     children: [
-              //       Row(
-              //         mainAxisAlignment: MainAxisAlignment.start,
-              //         crossAxisAlignment: CrossAxisAlignment.start,
-              //         children: [
-
-              //           Expanded(
-              //             child: InkWell(
-              //               onTap: () {
-              //               },
-              //               child: Column(
-              //                 mainAxisAlignment: MainAxisAlignment.start,
-              //                 crossAxisAlignment: CrossAxisAlignment.start,
-              //                 children: [
-              //                   Text(
-              //                     "DELIVER TO.",
-              //                     style: GoogleFonts.montserrat(
-              //                       color: Colors.grey,
-              //                       fontSize: 18,
-              //                     ),
-
-              //                   ),
-              //                   Text(
-              //                     "Kindly provide us with your home location",
-              //                         maxLines: 1,
-              //                         overflow: TextOverflow.ellipsis,
-              //                     style: GoogleFonts.montserrat(
-              //                       color: Colors.black,
-              //                       fontWeight: FontWeight.bold,
-              //                       fontSize: 18,
-              //                     ),
-              //                   ),
-              //                 ],
-              //               ),
-              //             ),
-              //           ),
-              //           InkWell(
-              //             onTap: () {
-              //             },
-              //             child: Container(
-              //                 margin: const EdgeInsets.only(right: 20),
-              //                 alignment: Alignment.topCenter,
-              //                 child: const Icon(
-              //                   Icons.arrow_drop_down_outlined,
-              //                   size: 40,
-              //                   color:primaryColor,
-              //                 )),
-              //           )
-              //         ],
-              //       ),
-              //     ],
-              //   ),
-              // ),
-
               Container(
                 decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
@@ -211,7 +218,6 @@ class _MainPanelState extends State<MainPanel> {
               const SizedBox(
                 height: 20,
               ),
-
               Expanded(
                 child: Container(
                   decoration: const BoxDecoration(
@@ -244,7 +250,7 @@ class _MainPanelState extends State<MainPanel> {
                       ),
                       Category(fetch: (fet) {
                         if (fet) {
-                            ordersList.clear();
+                          ordersList.clear();
                           _db.getAllCarts().then((value2) {
                             setState(() {
                               ordersList.addAll(value2);
@@ -252,7 +258,15 @@ class _MainPanelState extends State<MainPanel> {
                           });
                         }
                       }),
-                      CartPage(),
+                      CartPage(
+                        screen: (index) {
+                          _controller.animateToPage(
+                            index,
+                            duration: const Duration(milliseconds: 400),
+                            curve: Curves.easeOut,
+                          );
+                        },
+                      ),
                       UserAccount(),
                     ],
                   ),

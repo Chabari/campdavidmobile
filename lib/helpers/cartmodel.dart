@@ -1,4 +1,3 @@
-
 class OrderItemsModel {
   String amount;
   String quantity;
@@ -6,9 +5,12 @@ class OrderItemsModel {
   String productname;
   String productId;
   String image;
-  String tag_name;
-  String tag_id;
-  String tag_price;
+  String package;
+  String packageId;
+  String weight;
+  String tagName;
+  String tagId;
+  String unitName;
   int? id;
 
   OrderItemsModel(
@@ -16,10 +18,13 @@ class OrderItemsModel {
       required this.category,
       required this.image,
       required this.productId,
+      required this.package,
+      required this.unitName,
       required this.productname,
-      required this.tag_name,
-      required this.tag_id,
-      required this.tag_price,
+      required this.packageId,
+      required this.weight,
+      required this.tagName,
+      required this.tagId,
       this.id,
       required this.quantity});
 
@@ -31,9 +36,12 @@ class OrderItemsModel {
       'image': image,
       'productId': productId,
       'productname': productname,
-      'tag_name': tag_name,
-      'tag_id': tag_id,
-      'tag_price': tag_price,
+      'unitName': unitName,
+      'tagName': tagName,
+      'package': package,
+      'tagId': tagId,
+      'packageId': packageId,
+      'weight': weight,
       'quantity': quantity
     };
   }
@@ -42,13 +50,14 @@ class OrderItemsModel {
       id: json["id"],
       amount: json["amount"],
       category: json["category"],
+      package: json['package'] ?? "none",
       image: json["image"],
       productId: json["productId"],
       productname: json["productname"],
-      tag_name: json["tag_name"],
-      tag_price: json["tag_price"],
-      tag_id: json["tag_id"],
+      unitName: json['unitName'],
+      tagName: json["tagName"],
+      packageId: json['packageId'],
+      tagId: json["tagId"],
+      weight: json["weight"],
       quantity: json["quantity"]);
-
-
 }
