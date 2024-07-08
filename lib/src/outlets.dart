@@ -1,11 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
-
-import 'package:ars_progress_dialog/dialog.dart';
 import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/helpers/userlist.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+// import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -27,7 +24,7 @@ class _OutletsState extends State<Outlets> {
   double longitude = 37.06933;
   double latitude2 = -1.03326;
   double longitude2 = 37.06933;
-  String token = "";
+  // String token = "";
   bool isLoading = true;
   String landmark = '';
   final _customerCodeController = TextEditingController();
@@ -39,7 +36,6 @@ class _OutletsState extends State<Outlets> {
   String _currentAddress = '';
   List<RidersList> riderslists = [];
 
-  late ArsProgressDialog progressDialog;
 
   @override
   void initState() {
@@ -48,16 +44,12 @@ class _OutletsState extends State<Outlets> {
     fToast = FToast();
 
     SharedPreferences.getInstance().then((value) {
-      setState(() {
-        token = value.getString('token')!;
-      });
+      // setState(() {
+      //   token = value.getString('token')!;
+      // });
     });
 
     fToast.init(context);
-    progressDialog = ArsProgressDialog(context,
-        blur: 2,
-        backgroundColor: const Color(0x33000000),
-        animationDuration: const Duration(milliseconds: 500));
 
     _determinePosition().then((value) {
       setState(() {
@@ -82,7 +74,6 @@ class _OutletsState extends State<Outlets> {
   void addmarkers() {
     if (riderslists.length > 0) {
       for (var element in riderslists) {
-        print(element.photo);
         _addMarker(
             LatLng(double.parse(element.latitude),
                 double.parse(element.longitude)),
@@ -169,7 +160,7 @@ class _OutletsState extends State<Outlets> {
         getaddress();
       });
     }
-    return await Geolocator.getCurrentPosition();
+    return await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
   }
 
   void getaddress() async {
@@ -305,6 +296,7 @@ class _OutletsState extends State<Outlets> {
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Card(
+                                                color: Colors.white,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20)),
                             elevation: 3,

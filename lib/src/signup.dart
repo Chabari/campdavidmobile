@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:ars_progress_dialog/dialog.dart';
 import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/src/checkout.dart';
 import 'package:campdavid/src/mainpanel.dart';
@@ -10,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -25,7 +25,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _phoneCOntroller = TextEditingController();
   final _passwordCOntroller = TextEditingController();
   bool obscure = true;
-  late ArsProgressDialog progressDialog;
+  late ProgressDialog progressDialog;
   var _deviceToken;
   final _formKey = GlobalKey<FormState>();
   late FToast fToast;
@@ -35,17 +35,16 @@ class _SignupScreenState extends State<SignupScreen> {
     super.initState();
     fToast = FToast();
     fToast.init(context);
-    progressDialog = ArsProgressDialog(context,
-        blur: 2,
-        backgroundColor: const Color(0x33000000),
-        animationDuration: const Duration(milliseconds: 500));
+    
+    progressDialog = ProgressDialog(context,
+        type: ProgressDialogType.normal, isDismissible: true, showLogs: false);
   }
 
   void validateSubmit() async {
     var formstate = _formKey.currentState;
         _deviceToken = await FirebaseMessaging.instance.getToken();
     if (formstate!.validate()) {
-      progressDialog.show();
+     await progressDialog.show();
       var data = {
         'phone': _phoneCOntroller.text,
         'password': _passwordCOntroller.text,
@@ -54,19 +53,17 @@ class _SignupScreenState extends State<SignupScreen> {
         'token': _deviceToken
       };
       var body = json.encode(data);
-      print(body);
       var response = await http.post(Uri.parse("${mainUrl}user-signup"),
           headers: {
             "Content-Type": "application/json",
             'Accept': 'application/json',
           },
           body: body);
-      print(response.body);
       final mpref = await SharedPreferences.getInstance();
 
       Map<String, dynamic> json1 = json.decode(response.body);
       if (response.statusCode == 200) {
-        progressDialog.dismiss();
+        await progressDialog.hide();
         if (json1['success'] == "1") {
           Map<String, dynamic> user = json1['user'];
           setState(() {
@@ -98,7 +95,7 @@ class _SignupScreenState extends State<SignupScreen> {
           _onAlertButtonsPressed(context, json1['message'], _phoneCOntroller.text);
         }
       } else {
-        progressDialog.dismiss();
+        await progressDialog.hide();
         showtoast(json1['message'], Colors.red);
       }
     }
@@ -275,6 +272,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   Card(
+                                                color: Colors.white,
                     margin: const EdgeInsets.all(10).copyWith(top: 5),
                     elevation: 3,
                     shape: RoundedRectangleBorder(
@@ -321,6 +319,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   Card(
+                                                color: Colors.white,
                     margin: const EdgeInsets.all(10).copyWith(top: 5),
                     elevation: 3,
                     shape: RoundedRectangleBorder(
@@ -367,6 +366,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   Card(
+                                                color: Colors.white,
                     margin: const EdgeInsets.all(10).copyWith(top: 5),
                     elevation: 3,
                     shape: RoundedRectangleBorder(
@@ -417,6 +417,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   Card(
+                                                color: Colors.white,
                     margin: const EdgeInsets.all(10).copyWith(top: 5),
                     elevation: 3,
                     shape: RoundedRectangleBorder(

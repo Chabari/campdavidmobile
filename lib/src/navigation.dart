@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:ars_progress_dialog/dialog.dart';
 import 'package:campdavid/helpers/constants.dart';
-import 'package:campdavid/helpers/userlist.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+// import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -13,6 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:math';
 import 'package:http/http.dart' as http;
+import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:url_launcher/url_launcher.dart';
@@ -46,8 +45,7 @@ class _NavigationState extends State<Navigation> {
 
   List<LatLng> polylineCoordinates = [];
   Map<PolylineId, Polyline> polylines = {};
-  PolylinePoints polylinePoints = PolylinePoints();
-  late ArsProgressDialog progressDialog;
+  // PolylinePoints polylinePoints = PolylinePoints();
 
   @override
   void initState() {
@@ -66,10 +64,6 @@ class _NavigationState extends State<Navigation> {
     });
 
     fToast.init(context);
-    progressDialog = ArsProgressDialog(context,
-        blur: 2,
-        backgroundColor: const Color(0x33000000),
-        animationDuration: const Duration(milliseconds: 500));
 
     _determinePosition().then((value) {
       setState(() {
@@ -92,7 +86,7 @@ class _NavigationState extends State<Navigation> {
           BitmapDescriptor.defaultMarkerWithHue(90),
         );
 
-        _getPolyline();
+        // _getPolyline();
       });
 
       getaddress();
@@ -134,20 +128,20 @@ class _NavigationState extends State<Navigation> {
     setState(() {});
   }
 
-  _getPolyline() async {
-    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-      kGoogleApiKey,
-      PointLatLng(latitude, longitude),
-      PointLatLng(latitude2, longitude2),
-      travelMode: TravelMode.driving,
-    );
-    if (result.points.isNotEmpty) {
-      result.points.forEach((PointLatLng point) {
-        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-      });
-    }
-    _addPolyLine();
-  }
+  // _getPolyline() async {
+  //   PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+  //     kGoogleApiKey,
+  //     PointLatLng(latitude, longitude),
+  //     PointLatLng(latitude2, longitude2),
+  //     travelMode: TravelMode.driving,
+  //   );
+  //   if (result.points.isNotEmpty) {
+  //     result.points.forEach((PointLatLng point) {
+  //       polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+  //     });
+  //   }
+  //   _addPolyLine();
+  // }
 
   Future<Position> _determinePosition() async {
     bool serviceEnabled;
@@ -200,13 +194,14 @@ class _NavigationState extends State<Navigation> {
             BitmapDescriptor.defaultMarkerWithHue(90),
           );
 
-          _getPolyline();
+          // _getPolyline();
         });
 
         getaddress();
       });
     }
-    return await Geolocator.getCurrentPosition();
+    return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
   }
 
   void getRiderAddress() async {
@@ -216,8 +211,7 @@ class _NavigationState extends State<Navigation> {
 
     if (place.administrativeArea != null) {
       setState(() {
-        riderLocation =
-            "${place.name!} ${place.street!}";
+        riderLocation = "${place.name!} ${place.street!}";
       });
     } else {
       setState(() {
@@ -265,7 +259,7 @@ class _NavigationState extends State<Navigation> {
             BitmapDescriptor.defaultMarkerWithHue(90),
           );
 
-          _getPolyline();
+          // _getPolyline();
         });
 
         getaddress();
@@ -359,7 +353,7 @@ class _NavigationState extends State<Navigation> {
             BitmapDescriptor.defaultMarkerWithHue(90),
           );
 
-          _getPolyline();
+          // _getPolyline();
         });
 
         getaddress();
@@ -393,7 +387,7 @@ class _NavigationState extends State<Navigation> {
                 circles: Set.from(
                   [
                     Circle(
-                      circleId:  CircleId('currentCircle'),
+                      circleId: CircleId('currentCircle'),
                       center: LatLng(latitude, longitude),
                       radius: 2000,
                       fillColor: Colors.blue.shade100.withOpacity(0.5),
@@ -425,6 +419,7 @@ class _NavigationState extends State<Navigation> {
                 right: 10,
                 left: 10,
                 child: Card(
+                  color: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
@@ -451,7 +446,6 @@ class _NavigationState extends State<Navigation> {
                           const SizedBox(
                             width: 10,
                           ),
-                          
                         ],
                       ),
                     ),
@@ -462,27 +456,24 @@ class _NavigationState extends State<Navigation> {
                 right: 0,
                 left: 0,
                 child: Card(
-                      shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(32),
-                              topRight: Radius.circular(32))),
+                  shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(32),
+                          topRight: Radius.circular(32))),
                   child: Stack(
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(10.0),
                         child: Column(
                           children: [
-
                             Text(
-                                  "Here is your rider details: ",
-                                  style: GoogleFonts.montserrat(
-                                      fontSize: 18, color: primaryColor),
-                                ),
-
-                             const SizedBox(
+                              "Here is your rider details: ",
+                              style: GoogleFonts.montserrat(
+                                  fontSize: 18, color: primaryColor),
+                            ),
+                            const SizedBox(
                               height: 20,
                             ),
-
                             Row(
                               children: [
                                 Container(
@@ -496,8 +487,11 @@ class _NavigationState extends State<Navigation> {
                                               widget.orderList.driver_photo)),
                                       color: Colors.grey.shade200),
                                 ),
-                                const SizedBox(width: 10,),
-                                Expanded(child: Column(
+                                const SizedBox(
+                                  width: 10,
+                                ),
+                                Expanded(
+                                    child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
@@ -511,26 +505,25 @@ class _NavigationState extends State<Navigation> {
                                         Text(
                                           widget.orderList.numberPlate,
                                           style: GoogleFonts.montserrat(
-                                              fontSize: 14, fontWeight: FontWeight.bold),
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold),
                                         ),
                                       ],
                                     ),
-
-                             const SizedBox(
-                              height: 8,
-                            ),
+                                    const SizedBox(
+                                      height: 8,
+                                    ),
                                     Text(
-                                  widget.orderList.driver_phone,
-                                  style: GoogleFonts.montserrat(
-                                      fontSize: 16, fontWeight: FontWeight.bold),
-                                ),
+                                      widget.orderList.driver_phone,
+                                      style: GoogleFonts.montserrat(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold),
+                                    ),
                                   ],
                                 ))
                               ],
                             ),
-                           
-                
-                             const SizedBox(
+                            const SizedBox(
                               height: 12,
                             ),
                             Row(
@@ -551,7 +544,6 @@ class _NavigationState extends State<Navigation> {
                               ],
                             ),
                             const Divider(),
-                
                             Card(
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
@@ -578,7 +570,6 @@ class _NavigationState extends State<Navigation> {
                           ],
                         ),
                       ),
-                      
                     ],
                   ),
                 )),

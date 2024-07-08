@@ -1,26 +1,21 @@
-import 'package:ars_progress_dialog/dialog.dart';
 import 'package:campdavid/helpers/constants.dart';
-import 'package:campdavid/src/checkout.dart';
+import 'package:campdavid/helpers/searchpagecontroller.dart';
 import 'package:campdavid/src/productdetails.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:http/http.dart' as http;
-import '../helpers/cartmodel.dart';
-import '../helpers/databaseHelper.dart';
 import '../helpers/packageslist.dart';
 import '../helpers/productlists.dart';
-import '../helpers/searchpagecontroller.dart';
 
 class SearchPage extends StatefulWidget {
   _SearchPageState createState() => _SearchPageState();
 }
 
 class _SearchPageState extends State<SearchPage> {
-  final controller = Get.put(SearchController());
+  final controller = Get.put(SearchItemsController());
 
   @override
   void initState() {
@@ -33,7 +28,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   @override
-  Widget build(context) => GetBuilder<SearchController>(
+  Widget build(context) => GetBuilder<SearchItemsController>(
       builder: (_) => Scaffold(
             body: SizedBox(
               height: getHeight(context),
@@ -110,7 +105,7 @@ class _SearchPageState extends State<SearchPage> {
                   const SizedBox(
                     height: 20,
                   ),
-                  _.productslists.length > 0
+                  _.productslists.isNotEmpty
                       ? Expanded(
                           child: ListView.builder(
                             itemCount: _.productslists.length,
@@ -118,6 +113,7 @@ class _SearchPageState extends State<SearchPage> {
                             physics: const BouncingScrollPhysics(),
                             itemBuilder: (context, index) {
                               return Card(
+                                                color: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                 ),
@@ -125,12 +121,14 @@ class _SearchPageState extends State<SearchPage> {
                                 elevation: 3,
                                 child: InkWell(
                                   onTap: () {
+                                    productCtl.selectedProductList =
+                                        _.productslists[index];
+                                    productCtl.update();
                                     Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => ProductDetails(
-                                            productList: _.productslists[index],
-                                          ),
+                                          builder: (context) =>
+                                              const ProductDetails(),
                                         ));
                                   },
                                   child: Row(
@@ -179,11 +177,13 @@ class _SearchPageState extends State<SearchPage> {
                                                       _.updateclickItems(
                                                           _.productslists[
                                                               index]);
-                                                      showDialog(_.productslists[
+                                                      showDialog(
+                                                          _.productslists[
                                                               index]);
                                                     }
                                                   },
                                                   child: Card(
+                                                color: Colors.white,
                                                     child: Icon(
                                                       Icons.shopping_cart,
                                                       color: _.cartproducts
@@ -313,11 +313,11 @@ class _SearchPageState extends State<SearchPage> {
           borderRadius: BorderRadius.only(
               topLeft: Radius.circular(32), topRight: Radius.circular(32))),
       builder: (BuildContext context) {
-        return GetBuilder<SearchController>(
+        return GetBuilder<SearchItemsController>(
             builder: (_) => Padding(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom),
-              child: Container(
+                  padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom),
+                  child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(
                       color: Colors.white,
@@ -400,8 +400,9 @@ class _SearchPageState extends State<SearchPage> {
                                                 }
                                               },
                                               child: const Card(
-                                                child: Icon(
-                                                    Icons.remove_circle_outline),
+                                                color: Colors.white,
+                                                child: Icon(Icons
+                                                    .remove_circle_outline),
                                               ),
                                             ),
                                             const SizedBox(
@@ -450,6 +451,7 @@ class _SearchPageState extends State<SearchPage> {
                                                 }
                                               },
                                               child: const Card(
+                                                color: Colors.white,
                                                 child: Icon(Icons
                                                     .add_circle_outline_sharp),
                                               ),
@@ -514,22 +516,25 @@ class _SearchPageState extends State<SearchPage> {
                                               )),
                                               InkWell(
                                                 onTap: () {
-                                                  if (product.tags[ind].quantity >
+                                                  if (product
+                                                          .tags[ind].quantity >
                                                       double.parse(product
                                                           .minimumQuantity)) {
-                                                    product.tags[ind].quantity--;
-                                                    product.tags[ind].isselected =
-                                                        true;
+                                                    product
+                                                        .tags[ind].quantity--;
+                                                    product.tags[ind]
+                                                        .isselected = true;
                                                     _.update();
                                                   } else {
                                                     product.tags[ind].quantity =
                                                         0;
-                                                    product.tags[ind].isselected =
-                                                        false;
+                                                    product.tags[ind]
+                                                        .isselected = false;
                                                     _.update();
                                                   }
                                                 },
                                                 child: const Card(
+                                                color: Colors.white,
                                                   child: Icon(Icons
                                                       .remove_circle_outline),
                                                 ),
@@ -546,25 +551,27 @@ class _SearchPageState extends State<SearchPage> {
                                                 style: GoogleFonts.montserrat(
                                                     fontSize: 16,
                                                     color: primaryColor,
-                                                    fontWeight: FontWeight.bold),
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                               ),
                                               const SizedBox(
                                                 width: 4,
                                               ),
                                               InkWell(
                                                 onTap: () {
-                                                  if (product
-                                                          .tags[ind].isselected ==
+                                                  if (product.tags[ind]
+                                                          .isselected ==
                                                       false) {
                                                     product.tags[ind].quantity =
                                                         double.parse(product
                                                             .minimumQuantity);
-                                                    product.tags[ind].isselected =
-                                                        true;
+                                                    product.tags[ind]
+                                                        .isselected = true;
                                                   } else {
-                                                    if (product.tags[ind].stock <=
-                                                        product
-                                                            .tags[ind].quantity) {
+                                                    if (product
+                                                            .tags[ind].stock <=
+                                                        product.tags[ind]
+                                                            .quantity) {
                                                     } else {
                                                       product.tags[ind]
                                                           .isselected = true;
@@ -575,6 +582,7 @@ class _SearchPageState extends State<SearchPage> {
                                                   // }
                                                 },
                                                 child: const Card(
+                                                color: Colors.white,
                                                   child: Icon(Icons
                                                       .add_circle_outline_sharp),
                                                 ),
@@ -585,7 +593,8 @@ class _SearchPageState extends State<SearchPage> {
                                             children: [
                                               Expanded(
                                                 child: Text(
-                                                  product.tags[ind].isselected ==
+                                                  product.tags[ind]
+                                                              .isselected ==
                                                           false
                                                       ? "Ksh ${product.tags[ind].price}"
                                                       : " ${product.tags[ind].quantity} * ${product.tags[ind].price}",
@@ -605,7 +614,7 @@ class _SearchPageState extends State<SearchPage> {
                                               ),
                                             ],
                                           ),
-            
+
                                           // .......................
                                         ],
                                       ),
@@ -687,9 +696,11 @@ class _SearchPageState extends State<SearchPage> {
                                             child: TextFormField(
                                                 onChanged: (value) {
                                                   if (value.isNotEmpty) {
-                                                    if (int.parse(value.trim()) >
+                                                    if (int.parse(
+                                                                value.trim()) >
                                                             500 &&
-                                                        int.parse(value.trim()) <
+                                                        int.parse(
+                                                                value.trim()) <
                                                             300000) {}
                                                   }
                                                 },
@@ -708,7 +719,8 @@ class _SearchPageState extends State<SearchPage> {
                                                     labelStyle:
                                                         GoogleFonts.montserrat(
                                                             fontSize: 12,
-                                                            color: Colors.black),
+                                                            color:
+                                                                Colors.black),
                                                     border: InputBorder.none,
                                                     hintStyle: GoogleFonts.lato(
                                                         fontSize: 14,
@@ -716,10 +728,11 @@ class _SearchPageState extends State<SearchPage> {
                                                 style: GoogleFonts.lato(
                                                     fontSize: 14,
                                                     color: Colors.black,
-                                                    fontWeight: FontWeight.bold)),
+                                                    fontWeight:
+                                                        FontWeight.bold)),
                                           ),
                                         ),
-            
+
                                         // InkWell(
                                         //   onTap: () {},
                                         //   child: Container(
@@ -748,7 +761,7 @@ class _SearchPageState extends State<SearchPage> {
                                       ],
                                     ),
                                   ),
-            
+
                                 const SizedBox(
                                   height: 10,
                                 ),
@@ -807,7 +820,7 @@ class _SearchPageState extends State<SearchPage> {
                                           _.selectedPackage =
                                               value as PackageList;
                                           _.update();
-            
+
                                           //Do something when changing the item if you want.
                                         },
                                         onSaved: (value) {
@@ -841,9 +854,9 @@ class _SearchPageState extends State<SearchPage> {
                             ),
                           ),
                         ),
-            
+
                         const Spacer(),
-            
+
                         InkWell(
                           onTap: () {
                             _.addCart(product, "checkout", context);
@@ -896,9 +909,8 @@ class _SearchPageState extends State<SearchPage> {
                       ],
                     ),
                   ),
-            ));
+                ));
       },
     );
   }
-
 }

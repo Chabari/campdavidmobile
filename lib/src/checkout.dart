@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:ars_progress_dialog/dialog.dart';
-import 'package:awesome_dialog/awesome_dialog.dart';
+// import 'package:awesome_dialog/awesome_dialog.dart';
+// import 'package:awesome_place_search/awesome_place_search.dart';
 import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/helpers/userlist.dart';
+import 'package:campdavid/src/locationpicker.dart';
 import 'package:campdavid/src/mainpanel.dart';
+import 'package:campdavid/src/newlocation.dart';
 import 'package:campdavid/src/ordersuccess.dart';
 import 'package:campdavid/src/outlets.dart';
 import 'package:campdavid/src/resetpasword.dart';
@@ -14,9 +16,13 @@ import 'package:flutter_custom_clippers/flutter_custom_clippers.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_maps_place_picker_mb/google_maps_place_picker.dart';
+// import 'package:google_maps_place_picker_mb/google_maps_place_picker.dart';
 import 'package:intl/intl.dart';
+// import 'package:location_picker_flutter_map/location_picker_flutter_map.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -36,18 +42,19 @@ class _CheckOutPageState extends State<CheckOutPage> {
   final DBHelper _db = DBHelper();
   final _formKeyLogin = GlobalKey<FormState>();
   final _formKeySignin = GlobalKey<FormState>();
-  static final kInitialPosition = LatLng(-1.03326, 37.06933);
-  late ArsProgressDialog progressDialog;
+  static final kInitialPosition = const LatLng(-1.03326, 37.06933);
+
+  late ProgressDialog progressDialog;
   List<RidersList> riderslists = [];
   double total = 0;
   bool isObscure = true;
   double subtotal = 0;
   String location = "";
   double latitude = 0;
+  double longitude = 0;
   String deviceToken = "";
   bool isShow = true;
   String message = "";
-  double longitude = 0;
   bool orderforFriend = false;
   bool isLoggedIn = false;
   bool hasAccount = false;
@@ -71,7 +78,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
 
   final _phoneEditingController = TextEditingController();
   String? token;
-  PickResult? selectedPlace;
+  // PickResult? selectedPlace;
   bool selectLocation = false;
   bool selectPhone = false;
   bool selectPhoneFriend = false;
@@ -96,10 +103,8 @@ class _CheckOutPageState extends State<CheckOutPage> {
     // TODO: implement initState
     super.initState();
 
-    progressDialog = ArsProgressDialog(context,
-        blur: 2,
-        backgroundColor: const Color(0x33000000),
-        animationDuration: const Duration(milliseconds: 500));
+    progressDialog = ProgressDialog(context,
+        type: ProgressDialogType.normal, isDismissible: true, showLogs: false);
     // Future.delayed(const Duration(milliseconds: 300)).then((value) {
     //   progressDialog.show();
     // });
@@ -122,17 +127,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
       }
     });
 
-    // _determinePosition().then((value) {
-    //   if (mounted) {
-    //     setState(() {
-    //       latitude = value.latitude;
-    //       longitude = value.longitude;
-    //     });
-
-    //     checklocation();
-    //   }
-    //   //getaddress();
-    // });
+    requestPermissions();
 
     // Timer.periodic(const Duration(seconds: 10), (Timer timer) {
     //   if (mounted) {
@@ -159,8 +154,34 @@ class _CheckOutPageState extends State<CheckOutPage> {
     });
   }
 
-  _onAlertButtonsPressed(message) {
-    progressDialog.dismiss();
+  // PickedData? prediction;
+  void searchPlaces() async {}
+
+  void requestPermissions() async {
+    Map<Permission, PermissionStatus> statuses =
+        await [Permission.location].request();
+    if (statuses[Permission.location] == PermissionStatus.granted) {
+      _determinePosition().then((value) {
+        if (mounted) {
+          setState(() {
+            latitude = value.latitude;
+            longitude = value.longitude;
+          });
+          checklocation();
+          getaddress();
+        }
+      });
+    } else if (await Permission.location.request().isPermanentlyDenied) {
+      await Geolocator.openLocationSettings();
+    } else if (await Permission.location.request().isDenied) {
+      await Permission.location.request();
+      await Geolocator.openLocationSettings();
+    }
+  }
+
+  _onAlertButtonsPressed(message) async {
+    await progressDialog.hide();
+    // ignore: use_build_context_synchronously
     Alert(
       context: context,
       type: AlertType.warning,
@@ -174,18 +195,17 @@ class _CheckOutPageState extends State<CheckOutPage> {
       desc: message,
       buttons: [
         DialogButton(
+          onPressed: () {
+            Navigator.pop(context);
+            Navigator.pop(context);
+          },
+          color: Colors.black,
           child: Text(
             "CANCEL",
             style: GoogleFonts.montserrat(color: Colors.white, fontSize: 18),
           ),
-          onPressed: () => Navigator.pop(context),
-          color: Colors.black,
         ),
         DialogButton(
-          child: Text(
-            "OPEN",
-            style: GoogleFonts.montserrat(color: Colors.white, fontSize: 18),
-          ),
           onPressed: () async {
             Navigator.pop(context);
             await Geolocator.openLocationSettings();
@@ -194,6 +214,10 @@ class _CheckOutPageState extends State<CheckOutPage> {
             secondaryColor,
             primaryColor,
           ]),
+          child: Text(
+            "OPEN",
+            style: GoogleFonts.montserrat(color: Colors.white, fontSize: 18),
+          ),
         )
       ],
     ).show();
@@ -202,15 +226,8 @@ class _CheckOutPageState extends State<CheckOutPage> {
   Future<Position> _determinePosition() async {
     bool serviceEnabled;
     LocationPermission permission;
-
-    // Test if location services are enabled.
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      // Location services are not enabled don't continue
-      // accessing the position and request users of the
-      // App to enable the location services.
-
-      // return Future.error('Location services are disabled.');
       _onAlertButtonsPressed(
           'Location services are disabled. Open settings to enable');
     }
@@ -219,23 +236,17 @@ class _CheckOutPageState extends State<CheckOutPage> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        // _showToast("Location permissions are denied. Turn on your location",
-        //     Icons.check, Colors.red);
         _onAlertButtonsPressed(
             'Location permissions are denied. Turn on your location');
-        // return Future.error('Location permissions are denied');
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      // Permissions are denied forever, handle appropriately.
-
-      // _showToast("Location permissions are denied. Turn on your location",
-      //     Icons.check, Colors.red);
       _onAlertButtonsPressed(
           'Location permissions are denied. Turn on your location');
     }
-    return await Geolocator.getCurrentPosition();
+    return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
   }
 
   void getaddress() async {
@@ -262,8 +273,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
             latitude = value.latitude;
             longitude = value.longitude;
           });
+          checklocation();
+          getaddress();
         }
-        getaddress();
       });
     }
   }
@@ -277,18 +289,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
   }
 
   void checklocation() async {
-    // 36km
-    print(latitude);
-    print(longitude);
-    var dist =
-        calculateDistance(-1.0732733, 37.1003864, -1.2132713, 36.9090448);
-    print(dist);
-
-    var geolocator = Geolocator.distanceBetween(
-        -1.0732733, 37.1003864, -1.2132713, 36.9090448);
-    print(geolocator);
-
-    progressDialog.show();
+    await progressDialog.show();
     Map data = {
       'longitude': longitude.toString(),
       'latitude': latitude.toString()
@@ -301,10 +302,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
         },
         body: body);
 
-    print(response.body);
     Map<String, dynamic> json1 = json.decode(response.body);
     if (response.statusCode == 200) {
-      progressDialog.dismiss();
+      await progressDialog.hide();
 
       if (json1['success'] == "true") {
         setState(() {
@@ -318,6 +318,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
           message = json1['message'];
         });
 
+        // ignore: use_build_context_synchronously
         Alert(
           context: context,
           type: AlertType.warning,
@@ -331,11 +332,6 @@ class _CheckOutPageState extends State<CheckOutPage> {
           desc: message,
           buttons: [
             DialogButton(
-              child: Text(
-                "CANCEL",
-                style:
-                    GoogleFonts.montserrat(color: Colors.white, fontSize: 18),
-              ),
               onPressed: () {
                 Navigator.pop(context);
                 setState(() {
@@ -347,6 +343,11 @@ class _CheckOutPageState extends State<CheckOutPage> {
                 });
               },
               color: Colors.black,
+              child: Text(
+                "CANCEL",
+                style:
+                    GoogleFonts.montserrat(color: Colors.white, fontSize: 18),
+              ),
             ),
             DialogButton(
               color: primaryColor,
@@ -375,12 +376,16 @@ class _CheckOutPageState extends State<CheckOutPage> {
         ).show();
       }
     } else {
-      progressDialog.dismiss();
+      await progressDialog.hide();
       showToast(json1['message'], Colors.red);
     }
   }
 
   void validateSubmit() async {
+    if (ordersList.isEmpty) {
+      showToast("Select Items to order", Colors.red);
+      return;
+    }
     if (orderforFriend) {
       if (_nameFriendController.text.isEmpty) {
         showToast("Please enter your friend's name", Colors.red);
@@ -400,9 +405,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
     if (location != "" &&
         _phoneEditingController.text.isNotEmpty &&
         _nameController.text.isNotEmpty) {
-      progressDialog.show();
+      await progressDialog.show();
 
-      if (landmark != '') {
+      if (location != '') {
         var items = [];
         if (selected == 0) {
           setState(() {
@@ -428,13 +433,15 @@ class _CheckOutPageState extends State<CheckOutPage> {
           items.add(itm);
         }
 
-        print(deviceToken);
-
         Map data = {
           'landmark': landmark,
           'deviceToken': deviceToken,
-          'friend_name': _nameFriendController.text.isNotEmpty ? _nameFriendController.text : "none",
-          'friend_phone': _phoneFriendEditingController.text.isNotEmpty ? _phoneFriendEditingController.text : "none",
+          'friend_name': _nameFriendController.text.isNotEmpty
+              ? _nameFriendController.text
+              : "none",
+          'friend_phone': _phoneFriendEditingController.text.isNotEmpty
+              ? _phoneFriendEditingController.text
+              : "none",
           'longitude': longitude.toString(),
           'selectedDeliveryOption': selectedDeliveryOption.toString(),
           'delivery_fee': deliveryfee,
@@ -464,10 +471,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
                   },
                   body: body);
 
-          print(response.body);
           Map<String, dynamic> json1 = json.decode(response.body);
           if (response.statusCode == 200) {
-            progressDialog.dismiss();
+            await progressDialog.hide();
             if (json1['success'] == "1") {
               _db.deleteAll().then((value) {
                 Navigator.pushReplacement(
@@ -482,7 +488,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
               showToast(json1['message'], Colors.red);
             }
           } else {
-            progressDialog.dismiss();
+            await progressDialog.hide();
             showToast(json1['message'], Colors.red);
           }
         } else {
@@ -492,11 +498,10 @@ class _CheckOutPageState extends State<CheckOutPage> {
                 'Accept': 'application/json',
               },
               body: body);
-          print(response.body);
 
           Map<String, dynamic> json1 = json.decode(response.body);
           if (response.statusCode == 200) {
-            progressDialog.dismiss();
+            await progressDialog.hide();
             if (json1['success'] == "1") {
               _db.deleteAll().then((value) {
                 Navigator.pushReplacement(
@@ -511,7 +516,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
               showToast(json1['message'], Colors.red);
             }
           } else {
-            progressDialog.dismiss();
+            await progressDialog.hide();
             showToast(json1['message'], Colors.red);
           }
         }
@@ -563,23 +568,6 @@ class _CheckOutPageState extends State<CheckOutPage> {
     });
   }
 
-  // Future<LocationResult> showPlacePicker() async {
-  //   // LocationResult result = await Navigator.of(context).push(MaterialPageRoute(
-  //   //     builder: (context) => PlacePicker(
-
-  //   //           kGoogleApiKey,
-  //   //         )));
-
-  //   // setState(() {
-  //   //   location = result.name! + " " + result.locality!;
-  //   //   latitude = result.latLng!.latitude;
-  //   //   longitude = result.latLng!.longitude;
-  //   // });
-
-  //   getaddress();
-  //   return result;
-  // }
-
   void _openDialog(cntx) async {
     await Navigator.of(cntx).push(MaterialPageRoute<String>(
         builder: (BuildContext cntx) {
@@ -605,6 +593,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                       shrinkWrap: true,
                       physics: const BouncingScrollPhysics(),
                       itemBuilder: (context, index) => Card(
+                        color: Colors.white,
                         margin: const EdgeInsets.only(top: 8),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20)),
@@ -804,9 +793,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                                     pickuptime = pickedTime
                                                         .format(context);
                                                   });
-                                                } else {
-                                                  print("Time is not selected");
-                                                }
+                                                } else {}
                                               } else {
                                                 setState(() {
                                                   timeinput.text = items[index];
@@ -900,11 +887,11 @@ class _CheckOutPageState extends State<CheckOutPage> {
 
                                     Future.delayed(
                                             const Duration(milliseconds: 500))
-                                        .then((value) {
+                                        .then((value) async {
                                       progressDialog.show();
                                       Future.delayed(const Duration(seconds: 2))
-                                          .then((value) {
-                                        progressDialog.dismiss();
+                                          .then((value) async {
+                                        await progressDialog.hide();
                                         Navigator.pop(context);
                                         getTotal();
                                       });
@@ -988,11 +975,11 @@ class _CheckOutPageState extends State<CheckOutPage> {
                   height: 30,
                 ),
                 InkWell(
-                  onTap: () {
-                    progressDialog.show();
+                  onTap: () async {
+                    await progressDialog.show();
                     riderslists.clear();
-                    fetchoutlets().then((value) {
-                      progressDialog.dismiss();
+                    fetchoutlets().then((value) async {
+                      await progressDialog.hide();
 
                       setState(() {
                         riderslists.addAll(value);
@@ -1031,49 +1018,36 @@ class _CheckOutPageState extends State<CheckOutPage> {
                   height: 30,
                 ),
                 InkWell(
-                  onTap: () {
+                  onTap: () async {
                     Navigator.of(context).pop();
-                    Navigator.push(
-                      context,
+                    final results = await Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => PlacePicker(
-                          apiKey: kGoogleApiKey,
-                          onPlacePicked: (result) {
-                            Navigator.of(context).pop();
-                            setState(() {
-                              selectedDeliveryOption = 0;
-                              selectedPlace = result;
-                              if (result != null) {
-                                setState(() {
-                                  selectLocation = false;
-                                  location = result.formattedAddress!;
-                                  if (result.name != null) {
-                                    landmark = result.name!;
-                                  } else {
-                                    landmark = result.formattedAddress!;
-                                  }
-                                  if (result.geometry != null) {
-                                    latitude = result.geometry!.location.lat;
-                                    longitude = result.geometry!.location.lng;
-
-                                    checklocation();
-                                  }
-                                });
-                              }
-                            });
-                          },
-                          region: "KE",
-                          initialPosition: kInitialPosition,
-                          enableMyLocationButton: true,
-                          selectInitialPosition: true,
-                          desiredLocationAccuracy: LocationAccuracy.best,
-                          usePinPointingSearch: true,
-                          useCurrentLocation: true,
-                          resizeToAvoidBottomInset:
-                              false, // remove this line, if map offsets are wrong
-                        ),
-                      ),
+                          builder: (context) => NewLocationPicker()),
                     );
+
+                    if (results != null) {
+                      LatLng pickedLocation = results['current_location'];
+                      var place = results['place'];
+
+                      List<Placemark> placemarks =
+                          await placemarkFromCoordinates(
+                              pickedLocation.latitude,
+                              pickedLocation.longitude);
+                      if (placemarks.isNotEmpty) {
+                        Placemark place = placemarks.first;
+                        setState(() {
+                          landmark =
+                              "${place.name}, ${place.locality}, ${place.administrativeArea}, ${place.country}";
+                        });
+                      }
+
+                      setState(() {
+                        latitude = pickedLocation.latitude;
+                        longitude = pickedLocation.longitude;
+                        location = place;
+                        checklocation();
+                      });
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.all(8),
@@ -1225,6 +1199,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                     ),
                                   ),
                                   Card(
+                                    color: Colors.white,
                                     margin: const EdgeInsets.all(10)
                                         .copyWith(top: 5),
                                     elevation: 3,
@@ -1279,6 +1254,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                     ),
                                   ),
                                   Card(
+                                    color: Colors.white,
                                     margin: const EdgeInsets.all(10)
                                         .copyWith(top: 5),
                                     elevation: 3,
@@ -1424,6 +1400,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                     ),
                                   ),
                                   Card(
+                                    color: Colors.white,
                                     margin: const EdgeInsets.all(10)
                                         .copyWith(top: 5),
                                     elevation: 3,
@@ -1477,6 +1454,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                     ),
                                   ),
                                   Card(
+                                    color: Colors.white,
                                     margin: const EdgeInsets.all(10)
                                         .copyWith(top: 5),
                                     elevation: 3,
@@ -1530,6 +1508,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                     ),
                                   ),
                                   Card(
+                                    color: Colors.white,
                                     margin: const EdgeInsets.all(10)
                                         .copyWith(top: 5),
                                     elevation: 3,
@@ -1587,6 +1566,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                     ),
                                   ),
                                   Card(
+                                    color: Colors.white,
                                     margin: const EdgeInsets.all(10)
                                         .copyWith(top: 5),
                                     elevation: 3,
@@ -1758,14 +1738,13 @@ class _CheckOutPageState extends State<CheckOutPage> {
   void validateSubmitLogin() async {
     var formstate = _formKeyLogin.currentState;
     if (formstate!.validate()) {
-      progressDialog.show();
+      await progressDialog.show();
       var data = {
         'password': _password_loginCOntroller.text,
         'is_checkout': 'yes',
         'phone': _phoneloginCOntroller.text
       };
       var body = json.encode(data);
-      print(body);
       var response = await http.post(Uri.parse("${mainUrl}user-signin"),
           headers: {
             "Content-Type": "application/json",
@@ -1776,7 +1755,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
 
       Map<String, dynamic> json1 = json.decode(response.body);
       if (response.statusCode == 200) {
-        // progressDialog.dismiss();
+        // await progressDialog.hide();
         if (json1['success'] == "1") {
           Navigator.pop(context);
           Map<String, dynamic> user = json1['user'];
@@ -1806,13 +1785,13 @@ class _CheckOutPageState extends State<CheckOutPage> {
                 textColor: Colors.white,
                 fontSize: 16.0);
           }
-          progressDialog.show();
-          Future.delayed(const Duration(seconds: 1)).then((value) {
-            progressDialog.dismiss();
+          await progressDialog.show();
+          Future.delayed(const Duration(seconds: 1)).then((value) async {
+            await progressDialog.hide();
             Navigator.pop(context);
           });
         } else if (json1['success'] == "2") {
-          progressDialog.dismiss();
+          await progressDialog.hide();
           Fluttertoast.showToast(
               msg: json1['message'],
               toastLength: Toast.LENGTH_SHORT,
@@ -1822,7 +1801,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
               textColor: Colors.white,
               fontSize: 16.0);
         } else {
-          progressDialog.dismiss();
+          await progressDialog.hide();
           Fluttertoast.showToast(
               msg: json1['message'],
               toastLength: Toast.LENGTH_SHORT,
@@ -1833,7 +1812,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
               fontSize: 16.0);
         }
       } else {
-        progressDialog.dismiss();
+        await progressDialog.hide();
         Fluttertoast.showToast(
             msg: json1['message'],
             toastLength: Toast.LENGTH_SHORT,
@@ -1849,7 +1828,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
   void validateSubmitsignin() async {
     var formstate = _formKeySignin.currentState;
     if (formstate!.validate()) {
-      progressDialog.show();
+      await progressDialog.show();
       var data = {
         'phone': _phonesigninCOntroller.text,
         'password': _password_signinCOntroller.text,
@@ -1858,19 +1837,17 @@ class _CheckOutPageState extends State<CheckOutPage> {
         'last_name': _lnameCOntroller.text
       };
       var body = json.encode(data);
-      print(body);
       var response = await http.post(Uri.parse("${mainUrl}user-signup"),
           headers: {
             "Content-Type": "application/json",
             'Accept': 'application/json',
           },
           body: body);
-      print(response.body);
       final mpref = await SharedPreferences.getInstance();
 
       Map<String, dynamic> json1 = json.decode(response.body);
       if (response.statusCode == 200) {
-        // progressDialog.dismiss();
+        // await progressDialog.hide();
         if (json1['success'] == "1") {
           Map<String, dynamic> user = json1['user'];
           setState(() {
@@ -1899,13 +1876,13 @@ class _CheckOutPageState extends State<CheckOutPage> {
                 textColor: Colors.white,
                 fontSize: 16.0);
           }
-          progressDialog.show();
-          Future.delayed(const Duration(seconds: 1)).then((value) {
-            progressDialog.dismiss();
+          await progressDialog.show();
+          Future.delayed(const Duration(seconds: 1)).then((value) async {
+            await progressDialog.hide();
             Navigator.pop(context);
           });
         } else if (json1['success'] == "2") {
-          progressDialog.dismiss();
+          await progressDialog.hide();
           Fluttertoast.showToast(
               msg: json1['message'],
               toastLength: Toast.LENGTH_SHORT,
@@ -1915,7 +1892,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
               textColor: Colors.white,
               fontSize: 16.0);
         } else {
-          progressDialog.dismiss();
+          await progressDialog.hide();
           Fluttertoast.showToast(
               msg: json1['message'],
               toastLength: Toast.LENGTH_SHORT,
@@ -1926,7 +1903,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
               fontSize: 16.0);
         }
       } else {
-        progressDialog.dismiss();
+        await progressDialog.hide();
         Fluttertoast.showToast(
             msg: json1['message'],
             toastLength: Toast.LENGTH_SHORT,
@@ -1940,40 +1917,65 @@ class _CheckOutPageState extends State<CheckOutPage> {
   }
 
   void showAwesome(message, action) {
-    AwesomeDialog(
+    Alert(
       context: context,
-      dialogType: DialogType.info,
-      animType: AnimType.rightSlide,
-      title: 'Login Check',
+      type: AlertType.warning,
+      style: AlertStyle(
+        backgroundColor: Colors.white,
+        titleStyle: GoogleFonts.lato(
+            color: primaryColor, fontSize: 25, fontWeight: FontWeight.bold),
+        descStyle: GoogleFonts.lato(color: Colors.grey, fontSize: 18),
+      ),
+      title: "Login Check!",
       desc: message,
-      btnCancelOnPress: () {},
-      btnOkText: action,
-      btnOkOnPress: () {
-        if (action == "Create") {
-          var texts = _nameController.text.split(' ');
-          var textf = texts[0];
-          if (texts.length > 1) {
-            var textl = texts[1];
-            if (textl.isNotEmpty) {
-              setState(() {
-                _lnameCOntroller.text = textl;
-              });
-            }
-          }
+      buttons: [
+        DialogButton(
+          onPressed: () => Navigator.pop(context),
+          color: Colors.black,
+          child: Text(
+            "Close",
+            style: GoogleFonts.lato(color: Colors.white, fontSize: 18),
+          ),
+        ),
+        DialogButton(
+          onPressed: () {
+            Get.back();
+            //   btnOkOnPress: () {
+            if (action == "Create") {
+              var texts = _nameController.text.split(' ');
+              var textf = texts[0];
+              if (texts.length > 1) {
+                var textl = texts[1];
+                if (textl.isNotEmpty) {
+                  setState(() {
+                    _lnameCOntroller.text = textl;
+                  });
+                }
+              }
 
-          setState(() {
-            _fnameCOntroller.text = textf;
-          });
-          openDialogSignin(context);
-        } else {
-          openDialogSignin(context);
-        }
-      },
+              setState(() {
+                _fnameCOntroller.text = textf;
+              });
+              openDialogSignin(context);
+            } else {
+              openDialogSignin(context);
+            }
+          },
+          gradient: const LinearGradient(colors: [
+            secondaryColor,
+            primaryColor,
+          ]),
+          child: Text(
+            action,
+            style: GoogleFonts.lato(color: Colors.white, fontSize: 18),
+          ),
+        )
+      ],
     ).show();
   }
 
   void checkphone() async {
-    progressDialog.show();
+    await progressDialog.show();
     var data = {'phone': _phoneEditingController.text};
     var body = json.encode(data);
     var response = await http.post(Uri.parse("${mainUrl}checkUser"),
@@ -1985,9 +1987,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
 
     Map<String, dynamic> json1 = json.decode(response.body);
     String name = _nameController.text.split(' ')[0];
-    progressDialog.dismiss();
+    await progressDialog.hide();
     if (response.statusCode == 200) {
-      // progressDialog.dismiss();
+      // await progressDialog.hide();
       if (json1['success'] == "1") {
         setState(() {
           selectedItem = 0;
@@ -1996,17 +1998,8 @@ class _CheckOutPageState extends State<CheckOutPage> {
         });
 
         showAwesome("Dear $name, ${json1['message']}", "Login");
-
-        // Fluttertoast.showToast(
-        //     msg: "Please login to proceed",
-        //     toastLength: Toast.LENGTH_SHORT,
-        //     gravity: ToastGravity.CENTER,
-        //     timeInSecForIosWeb: 1,
-        //     backgroundColor: Colors.green,
-        //     textColor: Colors.white,
-        //     fontSize: 16.0);
       } else {
-        progressDialog.dismiss();
+        await progressDialog.hide();
 
         setState(() {
           selectedItem = 1;
@@ -2017,15 +2010,8 @@ class _CheckOutPageState extends State<CheckOutPage> {
         showAwesome("Dear $name, ${json1['message']}", "Create");
       }
     } else {
-      progressDialog.dismiss();
-      Fluttertoast.showToast(
-          msg: json1['message'],
-          toastLength: Toast.LENGTH_SHORT,
-          gravity: ToastGravity.CENTER,
-          timeInSecForIosWeb: 1,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 16.0);
+      await progressDialog.hide();
+      showToast(json1['message'], Colors.red);
     }
   }
 
@@ -2085,6 +2071,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemBuilder: (context, index) => Card(
+                        color: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -2159,11 +2146,11 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                                   fontSize: 18,
                                                   fontWeight: FontWeight.bold),
                                             ),
-
                                             Text(
-                                          " * (${(double.parse(ordersList[index].weight) * double.parse(ordersList[index].quantity)).toStringAsFixed(2)} ${ordersList[index].unitName})",
+                                              " * (${(double.parse(ordersList[index].weight) * double.parse(ordersList[index].quantity)).toStringAsFixed(2)} ${ordersList[index].unitName})",
                                               style: GoogleFonts.montserrat(
-                                                  fontSize: 18,),
+                                                fontSize: 18,
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -2245,9 +2232,9 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                             });
                                           });
                                         }
-
                                       },
                                       child: const Card(
+                                        color: Colors.white,
                                         child:
                                             Icon(Icons.remove_circle_outline),
                                       ),
@@ -2307,6 +2294,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                         });
                                       },
                                       child: const Card(
+                                        color: Colors.white,
                                         child: Icon(
                                             Icons.add_circle_outline_sharp),
                                       ),
@@ -2404,12 +2392,13 @@ class _CheckOutPageState extends State<CheckOutPage> {
                           ),
                         ),
                         Card(
+                          color: Colors.white,
                           margin: const EdgeInsets.all(10).copyWith(top: 5),
                           elevation: 3,
                           shape: selectName
                               ? RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
-                                  side: BorderSide(color: primaryColor))
+                                  side: const BorderSide(color: primaryColor))
                               : RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20)),
                           child: TextFormField(
@@ -2454,12 +2443,13 @@ class _CheckOutPageState extends State<CheckOutPage> {
                           ),
                         ),
                         Card(
+                          color: Colors.white,
                           margin: const EdgeInsets.all(10).copyWith(top: 5),
                           elevation: 3,
                           shape: selectPhone
                               ? RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
-                                  side: BorderSide(color: primaryColor))
+                                  side: const BorderSide(color: primaryColor))
                               : RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20)),
                           child: TextFormField(
@@ -2548,12 +2538,13 @@ class _CheckOutPageState extends State<CheckOutPage> {
                           ),
                         if (orderforFriend)
                           Card(
+                            color: Colors.white,
                             margin: const EdgeInsets.all(10).copyWith(top: 5),
                             elevation: 3,
                             shape: selectNameFriend
                                 ? RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
-                                    side: BorderSide(color: primaryColor))
+                                    side: const BorderSide(color: primaryColor))
                                 : RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20)),
                             child: TextFormField(
@@ -2601,12 +2592,13 @@ class _CheckOutPageState extends State<CheckOutPage> {
                           ),
                         if (orderforFriend)
                           Card(
+                            color: Colors.white,
                             margin: const EdgeInsets.all(10).copyWith(top: 5),
                             elevation: 3,
                             shape: selectPhoneFriend
                                 ? RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
-                                    side: BorderSide(color: primaryColor))
+                                    side: const BorderSide(color: primaryColor))
                                 : RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20)),
                             child: TextFormField(
@@ -2661,10 +2653,12 @@ class _CheckOutPageState extends State<CheckOutPage> {
                             child: InkWell(
                               onTap: () => _viewmoreModalBottomSheet(context),
                               child: Card(
+                                color: Colors.white,
                                 shape: selectLocation
                                     ? RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(20),
-                                        side: BorderSide(color: primaryColor))
+                                        side: const BorderSide(
+                                            color: primaryColor))
                                     : RoundedRectangleBorder(
                                         borderRadius:
                                             BorderRadius.circular(20)),
@@ -2677,7 +2671,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                       Expanded(
                                         child: Text(
                                           location != ""
-                                              ? "$landmark - $location"
+                                              ? " $location"
                                               : "Current Location (Tap to change)",
                                           style: GoogleFonts.montserrat(
                                               fontSize: 16, color: Colors.grey),
@@ -2691,6 +2685,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                           )
                         else
                           Card(
+                            color: Colors.white,
                             margin: const EdgeInsets.all(8),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20)),
@@ -2935,7 +2930,7 @@ class _CheckOutPageState extends State<CheckOutPage> {
                         ClipPath(
                           clipper: MovieTicketBothSidesClipper(),
                           child: Container(
-                            height: 280,
+                            height: 300,
                             color: Colors.grey.shade300,
                             width: getWidth(context),
                             child: Column(
@@ -3018,7 +3013,18 @@ class _CheckOutPageState extends State<CheckOutPage> {
                                 InkWell(
                                   onTap: () {
                                     if (token != null) {
-                                      validateSubmit();
+                                      if (double.parse(deliveryfee) > 0) {
+                                        validateSubmit();
+                                      } else {
+                                        if (selectedDeliveryOption == 0) {
+                                          showToast(
+                                              "Pick correct delivery Location",
+                                              Colors.red);
+                                        } else {
+                                          deliveryfee = "0";
+                                          validateSubmit();
+                                        }
+                                      }
                                     } else {
                                       if (_nameController.text.isNotEmpty) {
                                         if (_phoneEditingController

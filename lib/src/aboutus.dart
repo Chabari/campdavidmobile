@@ -1,7 +1,6 @@
 import 'package:campdavid/helpers/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:native_pdf_view/native_pdf_view.dart';
 
 class AboutUs extends StatefulWidget {
   _AboutUsState createState() => _AboutUsState();

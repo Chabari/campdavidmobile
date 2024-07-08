@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import 'package:ars_progress_dialog/dialog.dart';
 import 'package:campdavid/helpers/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -14,7 +14,7 @@ class EditProfile extends StatefulWidget {
 
 class _EditProfileState extends State<EditProfile> {
   late SharedPreferences mprefs;
-  late ArsProgressDialog progressDialog;
+  late ProgressDialog progressDialog;
   late FToast fToast;
   String token = "";
   final _formKey = GlobalKey<FormState>();
@@ -30,10 +30,10 @@ class _EditProfileState extends State<EditProfile> {
     super.initState();
     fToast = FToast();
     fToast.init(context);
-    progressDialog = ArsProgressDialog(context,
-        blur: 2,
-        backgroundColor: const Color(0x33000000),
-        animationDuration: const Duration(milliseconds: 500));
+    
+    progressDialog = ProgressDialog(context,
+        type: ProgressDialogType.normal, isDismissible: true, showLogs: false);
+
     SharedPreferences.getInstance().then((value) {
       mprefs = value;
       if (mprefs.getString('token') != null) {
@@ -116,7 +116,7 @@ class _EditProfileState extends State<EditProfile> {
   void validateSubmit() async {
     var formstate = _formKey.currentState;
     if (formstate!.validate()) {
-      progressDialog.show();
+      await progressDialog.show();
       var data = {
         'name': _fnameCOntroller.text,
         'phone': _phoneCOntroller.text,
@@ -134,7 +134,7 @@ class _EditProfileState extends State<EditProfile> {
 
       Map<String, dynamic> json1 = json.decode(response.body);
       if (response.statusCode == 200) {
-        progressDialog.dismiss();
+        await progressDialog.hide();
         if (json1['success'] == "1") {
           Map<String, dynamic> user = json1['user'];
           setState(() {
@@ -166,7 +166,7 @@ class _EditProfileState extends State<EditProfile> {
                   fontSize: 16.0);
         }
       } else {
-        progressDialog.dismiss();
+        await progressDialog.hide();
         _showToast(fToast, json1['message'], Colors.red, Icons.cancel);
       }
     }
@@ -233,6 +233,7 @@ class _EditProfileState extends State<EditProfile> {
                       ),
                     ),
                     Card(
+                                                color: Colors.white,
                       margin: const EdgeInsets.all(10).copyWith(top: 5),
                       elevation: 3,
                       shape: RoundedRectangleBorder(
@@ -278,6 +279,7 @@ class _EditProfileState extends State<EditProfile> {
                       ),
                     ),
                     Card(
+                                                color: Colors.white,
                       margin: const EdgeInsets.all(10).copyWith(top: 5),
                       elevation: 3,
                       shape: RoundedRectangleBorder(
@@ -324,6 +326,7 @@ class _EditProfileState extends State<EditProfile> {
                       ),
                     ),
                     Card(
+                                                color: Colors.white,
                       margin: const EdgeInsets.all(10).copyWith(top: 5),
                       elevation: 3,
                       shape: RoundedRectangleBorder(

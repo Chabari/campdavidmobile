@@ -5,7 +5,9 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"
+     android:required="false"/> -->
     
    <application
         android:usesCleartextTraffic="true"
@@ -53,6 +55,9 @@
             android:resource="@drawable/notification_icon" />
 
        <meta-data android:name="com.google.android.geo.API_KEY"
-           android:value="AIzaSyCUwQCkzVToSTN9PCH2KKuIO9MjCBzS1as"/>
+           android:value="AIzaSyAm41IGdUL9e0wiPYhW_m0PtdiD069PwLU"/>
     </application>
 </manifest>
+<!-- AIzaSyBleSyiYVQYXa9q1Y9ujapM1Lc8Lv_SUyE -->
+<!-- AIzaSyCUwQCkzVToSTN9PCH2KKuIO9MjCBzS1as -->
+<!-- AIzaSyAsUmuXEAgePBXNbFEDCeyXkmvGh7VbUDU -->

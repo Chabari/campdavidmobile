@@ -1,4 +1,3 @@
-import 'package:ars_progress_dialog/dialog.dart';
 import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/src/checkout.dart';
 import 'package:campdavid/src/login.dart';
@@ -6,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_custom_clippers/flutter_custom_clippers.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,7 +22,7 @@ class _CartPageState extends State<CartPage> {
   List<OrderItemsModel> ordersList = [];
   final DBHelper _db = DBHelper();
   late FToast fToast;
-  late ArsProgressDialog progressDialog;
+  // late ProgressDialog progressDialog;
   String text = "Your Cart is Empty";
   double total = 0;
   bool isLogged = false;
@@ -33,10 +33,8 @@ class _CartPageState extends State<CartPage> {
     fToast = FToast();
     fToast.init(context);
 
-    progressDialog = ArsProgressDialog(context,
-        blur: 2,
-        backgroundColor: const Color(0x33000000),
-        animationDuration: const Duration(milliseconds: 500));
+    // progressDialog = ProgressDialog(context,
+    //     type: ProgressDialogType.normal, isDismissible: true, showLogs: false);
 
     SharedPreferences.getInstance().then((value) {
       if (value.getString('token') != null) {
@@ -62,7 +60,7 @@ class _CartPageState extends State<CartPage> {
             (double.parse(element.amount) * double.parse(element.quantity));
       });
       // if (element.tagName != 'none') {
-        
+
       // } else {
       //   total +=
       //       (double.parse(element.amount) * double.parse(element.quantity));
@@ -165,127 +163,205 @@ class _CartPageState extends State<CartPage> {
                 const SizedBox(
                   height: 20,
                 ),
-                if(ordersList.length > 0)
-                ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: ordersList.length,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemBuilder: (context, index) => Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    margin: const EdgeInsets.all(6),
-                    elevation: 3,
-                    child: Row(
-                      children: [
-                        Container(
-                          height: 90,
-                          width: 90,
-                          decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                              image: DecorationImage(
-                                  image: NetworkImage(
-                                      imageUrl + ordersList[index].image))),
-                        ),
-                        Expanded(
-                            child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(left: 4.0),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      ordersList[index].tagName != "none"
-                                          ? ordersList[index].productname
-                                          : ordersList[index].productname,
-                                      style: GoogleFonts.montserrat(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold),
+                if (ordersList.length > 0)
+                  ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: ordersList.length,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemBuilder: (context, index) => Card(
+                      color: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      margin: const EdgeInsets.all(6),
+                      elevation: 3,
+                      child: Row(
+                        children: [
+                          Container(
+                            height: 90,
+                            width: 90,
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                image: DecorationImage(
+                                    image: NetworkImage(
+                                        imageUrl + ordersList[index].image))),
+                          ),
+                          Expanded(
+                              child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(left: 4.0),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        ordersList[index].tagName != "none"
+                                            ? ordersList[index].productname
+                                            : ordersList[index].productname,
+                                        style: GoogleFonts.montserrat(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      ),
                                     ),
+                                    InkWell(
+                                      onTap: () {
+                                        _db
+                                            .deleteCart(
+                                                ordersList[index].productId,
+                                                ordersList[index].tagId)
+                                            .then((value) {
+                                          ordersList.clear();
+                                          _db.getAllCarts().then((value2) {
+                                            setState(() {
+                                              ordersList.addAll(value2);
+                                            });
+                                            getTotal();
+                                          });
+                                        });
+                                      },
+                                      child: const Card(
+                                        color: Colors.white,
+                                        child: Icon(
+                                          Icons.delete_forever_outlined,
+                                          color: primaryColor,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(
+                                      width: 8,
+                                    )
+                                  ],
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(left: 4.0),
+                                child: Row(
+                                  children: [
+                                    if (ordersList[index].tagName != "none")
+                                      Text(
+                                        "${ordersList[index].tagName} @ Ksh ",
+                                        style: GoogleFonts.montserrat(
+                                            fontSize: 12, color: Colors.grey),
+                                      )
+                                    else
+                                      Text(
+                                        " Ksh",
+                                        style: GoogleFonts.montserrat(
+                                            fontSize: 12, color: Colors.grey),
+                                      ),
+                                    if (ordersList[index].tagName != "none")
+                                      Text(
+                                        ordersList[index].amount,
+                                        style: GoogleFonts.montserrat(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold),
+                                      )
+                                    else
+                                      Row(
+                                        children: [
+                                          Text(
+                                            ordersList[index].amount,
+                                            style: GoogleFonts.montserrat(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          Text(
+                                            " * ${(double.parse(ordersList[index].weight) * double.parse(ordersList[index].quantity)).toStringAsFixed(2)} ${ordersList[index].unitName}",
+                                            style: GoogleFonts.montserrat(
+                                                fontSize: 12,
+                                                color: Colors.grey),
+                                          ),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  InkWell(
+                                    onTap: () {
+                                      if (double.parse(
+                                              ordersList[index].quantity) >
+                                          1) {
+                                        _db
+                                            .checkexistsItem(
+                                                ordersList[index].productId,
+                                                ordersList[index].tagId)
+                                            .then((value) {
+                                          if (value.length > 0) {
+                                            var item = value.first;
+                                            OrderItemsModel mitem =
+                                                OrderItemsModel(
+                                              id: item['id'],
+                                              amount: item['amount'],
+                                              category: item['category'],
+                                              package: item['package'],
+                                              image: item['image'],
+                                              productId: item['productId'],
+                                              productname: item['productname'],
+                                              tagId: item['tagId'],
+                                              unitName: item['unitName'],
+                                              tagName: item['tagName'],
+                                              weight: item['weight'],
+                                              packageId: item['packageId'],
+                                              quantity: (double.parse(
+                                                          item['quantity']) -
+                                                      1)
+                                                  .toString(),
+                                            );
+                                            _db.updateCart(mitem);
+
+                                            ordersList.clear();
+                                            _db.getAllCarts().then((value2) {
+                                              setState(() {
+                                                ordersList.addAll(value2);
+                                              });
+                                              getTotal();
+                                            });
+                                          }
+                                        });
+                                      } else {
+                                        _db
+                                            .deleteCart(
+                                                ordersList[index].productId,
+                                                ordersList[index].tagId)
+                                            .then((value) {
+                                          ordersList.clear();
+                                          _db.getAllCarts().then((value2) {
+                                            setState(() {
+                                              ordersList.addAll(value2);
+                                            });
+                                            getTotal();
+                                          });
+                                        });
+                                      }
+                                    },
+                                    child: const Card(
+                                      color: Colors.white,
+                                      child: Icon(Icons.remove_circle_outline),
+                                    ),
+                                  ),
+                                  const SizedBox(
+                                    width: 4,
+                                  ),
+                                  Text(
+                                    ordersList[index].quantity,
+                                    style: GoogleFonts.montserrat(
+                                        fontSize: 18,
+                                        color: primaryColor,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(
+                                    width: 4,
                                   ),
                                   InkWell(
                                     onTap: () {
                                       _db
-                                          .deleteCart(
-                                              ordersList[index].productId, ordersList[index].tagId)
-                                          .then((value) {
-                                        ordersList.clear();
-                                        _db.getAllCarts().then((value2) {
-                                          setState(() {
-                                            ordersList.addAll(value2);
-                                          });
-                                          getTotal();
-                                        });
-                                      });
-                                    },
-                                    child: const Card(
-                                      child: Icon(
-                                        Icons.delete_forever_outlined,
-                                        color: primaryColor,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(
-                                    width: 8,
-                                  )
-                                ],
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(left: 4.0),
-                              child: Row(
-                                children: [
-                                  if (ordersList[index].tagName != "none")
-                                    Text(
-                                      "${ordersList[index].tagName} @ Ksh ",
-                                      style: GoogleFonts.montserrat(
-                                          fontSize: 12, color: Colors.grey),
-                                    )
-                                  else
-                                    Text(
-                                      " Ksh",
-                                      style: GoogleFonts.montserrat(
-                                          fontSize: 12, color: Colors.grey),
-                                    ),
-                                  if (ordersList[index].tagName != "none")
-                                    Text(
-                                      ordersList[index].amount,
-                                      style: GoogleFonts.montserrat(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold),
-                                    )
-                                  else
-                                    Row(
-                                      children: [
-                                        Text(
-                                          ordersList[index].amount,
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-
-                                        Text(
-                                          " * ${(double.parse(ordersList[index].weight) * double.parse(ordersList[index].quantity)).toStringAsFixed(2)} ${ordersList[index].unitName}",
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 12, color: Colors.grey),
-                                        ),
-                                      ],
-                                    ),
-                                ],
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                InkWell(
-                                  onTap: () {
-                                    if (double.parse(ordersList[index].quantity) >
-                                        1) {
-                                      _db
                                           .checkexistsItem(
-                                              ordersList[index].productId, ordersList[index].tagId)
+                                              ordersList[index].productId,
+                                              ordersList[index].tagId)
                                           .then((value) {
                                         if (value.length > 0) {
                                           var item = value.first;
@@ -295,185 +371,121 @@ class _CartPageState extends State<CartPage> {
                                             amount: item['amount'],
                                             category: item['category'],
                                             package: item['package'],
+                                            unitName: item['unitName'],
                                             image: item['image'],
                                             productId: item['productId'],
                                             productname: item['productname'],
                                             tagId: item['tagId'],
-                                            unitName: item['unitName'],
                                             tagName: item['tagName'],
                                             weight: item['weight'],
                                             packageId: item['packageId'],
-                                            quantity:
-                                                (double.parse(item['quantity']) -
-                                                        1)
-                                                    .toString(),
+                                            quantity: (double.parse(
+                                                        item['quantity']) +
+                                                    1)
+                                                .toString(),
                                           );
                                           _db.updateCart(mitem);
-
                                           ordersList.clear();
                                           _db.getAllCarts().then((value2) {
                                             setState(() {
                                               ordersList.addAll(value2);
                                             });
+
                                             getTotal();
                                           });
                                         }
                                       });
-                                    } else {
-                                      _db
-                                          .deleteCart(
-                                              ordersList[index].productId, ordersList[index].tagId)
-                                          .then((value) {
-                                        ordersList.clear();
-                                        _db.getAllCarts().then((value2) {
-                                          setState(() {
-                                            ordersList.addAll(value2);
-                                          });
-                                          getTotal();
-                                        });
-                                      });
-                                    }
-                                  },
-                                  child: const Card(
-                                    child: Icon(Icons.remove_circle_outline),
-                                  ),
-                                ),
-                                const SizedBox(
-                                  width: 4,
-                                ),
-                                Text(
-                                  ordersList[index].quantity,
-                                  style: GoogleFonts.montserrat(
-                                      fontSize: 18,
-                                      color: primaryColor,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(
-                                  width: 4,
-                                ),
-                                InkWell(
-                                  onTap: () {
-                                    _db
-                                        .checkexistsItem(
-                                            ordersList[index].productId, ordersList[index].tagId)
-                                        .then((value) {
-                                      if (value.length > 0) {
-                                        var item = value.first;
-                                        OrderItemsModel mitem = OrderItemsModel(
-                                          id: item['id'],
-                                            amount: item['amount'],
-                                            category: item['category'],
-                                            package: item['package'],
-                                            unitName: item['unitName'],
-                                            image: item['image'],
-                                            productId: item['productId'],
-                                            productname: item['productname'],
-                                            tagId: item['tagId'],
-                                            tagName: item['tagName'],
-                                            weight: item['weight'],
-                                            packageId: item['packageId'],
-                                          quantity:
-                                              (double.parse(item['quantity']) + 1)
-                                                  .toString(),
-                                        );
-                                        _db.updateCart(mitem);
-                                        ordersList.clear();
-                                        _db.getAllCarts().then((value2) {
-                                          setState(() {
-                                            ordersList.addAll(value2);
-                                          });
-
-                                          getTotal();
-                                        });
-                                      }
-                                    });
-                                  },
-                                  child: const Card(
-                                    child: Icon(Icons.add_circle_outline_sharp),
-                                  ),
-                                )
-                                ,
-                                const Spacer(),
-                                if (ordersList[index].tagName != "none")
-                                  Text(
-                                    "Ksh ${double.parse(ordersList[index].amount) * double.parse(ordersList[index].quantity)}",
-                                    style: GoogleFonts.montserrat(
-                                        fontSize: 18,
-                                          color: primaryColor,
-                                        fontWeight: FontWeight.bold),
-                                  )
-                                else
-                                  Text(
-                                    "Ksh ${double.parse(ordersList[index].amount) * double.parse(ordersList[index].quantity)}",
-                                    style: GoogleFonts.montserrat(
-                                        fontSize: 18,
-                                          color: primaryColor,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                
-                                    const SizedBox(width: 10,)
-                              ],
-                            )
-                          ],
-                        ))
-                      ],
-                    ),
-                  ),
-                )
-                else
-                  Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 30,),
-                          Text(
-                            "Your cart is empty. ",
-                            style: GoogleFonts.montserrat(
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 20,),
-                          Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            color: primaryColor,
-                            elevation: 3,
-                            child: InkWell(
-                              onTap: () {
-                                setState(() {
-                                  widget.screen(1);
-                                });
-                  
-                                
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      "Start Shopping",
-                                      style: GoogleFonts.montserrat(
-                                        color: Colors.white,
-                                      ),
+                                    },
+                                    child: const Card(
+                                      color: Colors.white,
+                                      child:
+                                          Icon(Icons.add_circle_outline_sharp),
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                                  ),
+                                  const Spacer(),
+                                  if (ordersList[index].tagName != "none")
+                                    Text(
+                                      "Ksh ${double.parse(ordersList[index].amount) * double.parse(ordersList[index].quantity)}",
+                                      style: GoogleFonts.montserrat(
+                                          fontSize: 18,
+                                          color: primaryColor,
+                                          fontWeight: FontWeight.bold),
+                                    )
+                                  else
+                                    Text(
+                                      "Ksh ${double.parse(ordersList[index].amount) * double.parse(ordersList[index].quantity)}",
+                                      style: GoogleFonts.montserrat(
+                                          fontSize: 18,
+                                          color: primaryColor,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  const SizedBox(
+                                    width: 10,
+                                  )
+                                ],
+                              )
+                            ],
+                          ))
                         ],
                       ),
                     ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Column(
+                      children: [
+                        const SizedBox(
+                          height: 30,
+                        ),
+                        Text(
+                          "Your cart is empty. ",
+                          style: GoogleFonts.montserrat(
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          color: primaryColor,
+                          elevation: 3,
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                widget.screen(1);
+                              });
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "Start Shopping",
+                                    style: GoogleFonts.montserrat(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(
                   height: 150,
                 )
               ],
             ),
           ),
-          if(ordersList.length > 0)
+          if (ordersList.length > 0)
             Positioned(
               bottom: 0,
               right: 0,
@@ -495,7 +507,7 @@ class _CartPageState extends State<CartPage> {
                         child: InkWell(
                           onTap: () {
                             // if (isLogged) {
-                              Navigator.push(
+                            Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => CheckOutPage(),
@@ -503,10 +515,9 @@ class _CartPageState extends State<CartPage> {
                             // } else {
                             //   _onAlertButtonsPressed(context);
                             // }
-                            
                           },
                           child: Padding(
-                            padding: const EdgeInsets.all(8.0),
+                            padding: const EdgeInsets.all(15.0),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               mainAxisAlignment: MainAxisAlignment.center,

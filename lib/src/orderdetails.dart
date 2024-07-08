@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-
-import 'package:ars_progress_dialog/dialog.dart';
+// import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/helpers/orderlist.dart';
@@ -10,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_custom_clippers/flutter_custom_clippers.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -28,15 +28,15 @@ class _OrderDetailsState extends State<OrderDetails> {
   String token = "";
   late FToast fToast;
   final _phoneController = TextEditingController();
-  late ArsProgressDialog progressDialog;
+  final _cancelNotesController = TextEditingController();
+  late ProgressDialog progressDialog;
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    progressDialog = ArsProgressDialog(context,
-        blur: 2,
-        backgroundColor: const Color(0x33000000),
-        animationDuration: const Duration(milliseconds: 500));
+
+    progressDialog = ProgressDialog(context,
+        type: ProgressDialogType.normal, isDismissible: true, showLogs: false);
     setState(() {
       _phoneController.text = widget.orderlist.customer_phone;
     });
@@ -94,7 +94,7 @@ class _OrderDetailsState extends State<OrderDetails> {
   }
 
   void initiateMpesa() async {
-    progressDialog.show();
+    await progressDialog.show();
     Map data = {
       'order_id': widget.orderlist.id.toString(),
       'phone': _phoneController.text,
@@ -110,7 +110,7 @@ class _OrderDetailsState extends State<OrderDetails> {
 
     Map<String, dynamic> json1 = json.decode(response.body);
     if (response.statusCode == 200) {
-      progressDialog.dismiss();
+      await progressDialog.hide();
       if (json1['success'] == "1") {
         Fluttertoast.showToast(
             msg: json1['message'],
@@ -131,7 +131,7 @@ class _OrderDetailsState extends State<OrderDetails> {
             fontSize: 16.0);
       }
     } else {
-      progressDialog.dismiss();
+      await progressDialog.hide();
       Fluttertoast.showToast(
           msg: json1['message'],
           toastLength: Toast.LENGTH_SHORT,
@@ -196,7 +196,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                     const SizedBox(
                       height: 20,
                     ),
-                    if(widget.orderlist.isPickup == 0)
+                    if (widget.orderlist.isPickup == 0)
                       Row(
                         children: [
                           Expanded(
@@ -318,8 +318,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                           ))
                         ],
                       ),
-                    
-                    if(widget.orderlist.isPickup == 0)
+                    if (widget.orderlist.isPickup == 0)
                       Padding(
                         padding: const EdgeInsets.all(0.0)
                             .copyWith(left: 20, right: 20),
@@ -340,30 +339,33 @@ class _OrderDetailsState extends State<OrderDetails> {
                             Container(
                               decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: widget.orderlist.status != "Order Placed"
-                                      ? primaryColor
-                                      : Colors.grey.shade400),
+                                  color:
+                                      widget.orderlist.status != "Order Placed"
+                                          ? primaryColor
+                                          : Colors.grey.shade400),
                               padding: const EdgeInsets.all(10),
                             ),
                             Expanded(
                                 child: Container(
-                              color: widget.orderlist.status != "Order Placed" &&
-                                      widget.orderlist.status != "Order Confirmed"
-                                  ? primaryColor
-                                  : Colors.grey.shade400,
+                              color:
+                                  widget.orderlist.status != "Order Placed" &&
+                                          widget.orderlist.status !=
+                                              "Order Confirmed"
+                                      ? primaryColor
+                                      : Colors.grey.shade400,
                               height: 8,
                             )),
                             Container(
                               decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color:
-                                      widget.orderlist.status != "Order Placed" &&
-                                              widget.orderlist.status !=
-                                                  "Order Confirmed" &&
-                                              widget.orderlist.status !=
-                                                  "Rider Confirmed"
-                                          ? primaryColor
-                                          : Colors.grey.shade400),
+                                  color: widget.orderlist.status !=
+                                              "Order Placed" &&
+                                          widget.orderlist.status !=
+                                              "Order Confirmed" &&
+                                          widget.orderlist.status !=
+                                              "Rider Confirmed"
+                                      ? primaryColor
+                                      : Colors.grey.shade400),
                               padding: const EdgeInsets.all(10),
                             ),
                             Expanded(
@@ -405,16 +407,15 @@ class _OrderDetailsState extends State<OrderDetails> {
                             Container(
                               decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: widget.orderlist.status != "Order Placed"
-                                      ? primaryColor
-                                      : Colors.grey.shade400),
+                                  color:
+                                      widget.orderlist.status != "Order Placed"
+                                          ? primaryColor
+                                          : Colors.grey.shade400),
                               padding: const EdgeInsets.all(10),
                             ),
-
                             Expanded(
                                 child: Container(
-                              color: 
-                                      widget.orderlist.status == "Order Picked"
+                              color: widget.orderlist.status == "Order Picked"
                                   ? primaryColor
                                   : Colors.grey.shade400,
                               height: 8,
@@ -422,17 +423,15 @@ class _OrderDetailsState extends State<OrderDetails> {
                             Container(
                               decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                              color: widget.orderlist.status == "Order Picked"
+                                  color:
+                                      widget.orderlist.status == "Order Picked"
                                           ? primaryColor
                                           : Colors.grey.shade400),
                               padding: const EdgeInsets.all(10),
                             ),
-                            
                           ],
                         ),
                       ),
-                      
-                    
                     if (widget.orderlist.driver != 'N/A' &&
                         widget.orderlist.status != "Delivered" &&
                         widget.orderlist.status != "Order Confirmed")
@@ -443,6 +442,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                         widget.orderlist.status != "Delivered" &&
                         widget.orderlist.status != "Order Confirmed")
                       Card(
+                        color: Colors.white,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20)),
                         child: Padding(
@@ -500,6 +500,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                                 children: [
                                   Expanded(
                                     child: Card(
+                                      color: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
                                       ),
@@ -532,6 +533,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                                   ),
                                   Expanded(
                                     child: Card(
+                                      color: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
                                       ),
@@ -572,12 +574,45 @@ class _OrderDetailsState extends State<OrderDetails> {
                     const SizedBox(
                       height: 20,
                     ),
+                    if (widget.orderlist.cancelled == 1)
+                      const SizedBox(
+                        height: 20,
+                      ),
+                    if (widget.orderlist.cancelled == 1)
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Container(
+                          width: getWidth(context),
+                          decoration: BoxDecoration(
+                              color: primaryColor,
+                              borderRadius: BorderRadius.circular(20)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Center(
+                              child: Text(
+                                "Order Cancelled",
+                                style: GoogleFonts.montserrat(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ClipPath(
                       clipper: MovieTicketBothSidesClipper(),
                       child: Container(
                         color: Colors.grey.shade200,
                         width: getWidth(context),
-                        height: widget.orderlist.notes != "N/A" && widget.orderlist.pickup_time != "none" ? 620 :  widget.orderlist.notes != "N/A" ? 570 : widget.orderlist.pickup_time != "none" ? 590 : 470,
+                        height: widget.orderlist.notes != "N/A" &&
+                                widget.orderlist.pickup_time != "none"
+                            ? 620
+                            : widget.orderlist.notes != "N/A"
+                                ? 570
+                                : widget.orderlist.pickup_time != "none"
+                                    ? 590
+                                    : 470,
                         child: Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Column(
@@ -742,57 +777,69 @@ class _OrderDetailsState extends State<OrderDetails> {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: widget.orderlist.isPickup == 0 ? Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          name,
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 14, color: Colors.grey),
-                                        ),
-                                        Text(
-                                          phone,
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 14, color: Colors.grey),
-                                        ),
-                                        Text(
-                                          widget.orderlist.deliveryLocation,
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 14, color: Colors.grey),
-                                        ),
-                                        Text(
-                                          widget.orderlist.landmark,
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 14, color: Colors.grey),
-                                        ),
-                                      ],
-                                    ) : Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Pickup at",
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 14, color: Colors.grey),
-                                        ),
-                                        Text(
-                                          widget.orderlist.seller,
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 14, color: Colors.grey),
-                                        ),
-                                        Text(
-                                          widget.orderlist.deliveryLocation,
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 14, color: Colors.grey),
-                                        ),
-                                        Text(
-                                          widget.orderlist.landmark,
-                                          style: GoogleFonts.montserrat(
-                                              fontSize: 14, color: Colors.grey),
-                                        ),
-                                      ],
-                                    ),
+                                    child: widget.orderlist.isPickup == 0
+                                        ? Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                name,
+                                                style: GoogleFonts.montserrat(
+                                                    fontSize: 14,
+                                                    color: Colors.grey),
+                                              ),
+                                              Text(
+                                                phone,
+                                                style: GoogleFonts.montserrat(
+                                                    fontSize: 14,
+                                                    color: Colors.grey),
+                                              ),
+                                              Text(
+                                                widget
+                                                    .orderlist.deliveryLocation,
+                                                style: GoogleFonts.montserrat(
+                                                    fontSize: 14,
+                                                    color: Colors.grey),
+                                              ),
+                                              Text(
+                                                widget.orderlist.landmark,
+                                                style: GoogleFonts.montserrat(
+                                                    fontSize: 14,
+                                                    color: Colors.grey),
+                                              ),
+                                            ],
+                                          )
+                                        : Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                "Pickup at",
+                                                style: GoogleFonts.montserrat(
+                                                    fontSize: 14,
+                                                    color: Colors.grey),
+                                              ),
+                                              Text(
+                                                widget.orderlist.seller,
+                                                style: GoogleFonts.montserrat(
+                                                    fontSize: 14,
+                                                    color: Colors.grey),
+                                              ),
+                                              Text(
+                                                widget
+                                                    .orderlist.deliveryLocation,
+                                                style: GoogleFonts.montserrat(
+                                                    fontSize: 14,
+                                                    color: Colors.grey),
+                                              ),
+                                              Text(
+                                                widget.orderlist.landmark,
+                                                style: GoogleFonts.montserrat(
+                                                    fontSize: 14,
+                                                    color: Colors.grey),
+                                              ),
+                                            ],
+                                          ),
                                   ),
                                   // Text(
                                   //   "Ksh ${widget.orderlist.total}",
@@ -803,50 +850,50 @@ class _OrderDetailsState extends State<OrderDetails> {
                                   // ),
                                 ],
                               ),
-                              if(widget.orderlist.pickup_time != "none")
-                                const SizedBox(height: 10,),
-                                if(widget.orderlist.pickup_time != "none")
-                                  Container(
-                                    alignment: Alignment.topLeft,
-                                    margin: const EdgeInsets.only(left: 4),
-                                    child: Text(
-                                      "Pickup time",
-                                      style: GoogleFonts.montserrat(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18),
-                                    ),
+                              if (widget.orderlist.pickup_time != "none")
+                                const SizedBox(
+                                  height: 10,
+                                ),
+                              if (widget.orderlist.pickup_time != "none")
+                                Container(
+                                  alignment: Alignment.topLeft,
+                                  margin: const EdgeInsets.only(left: 4),
+                                  child: Text(
+                                    "Pickup time",
+                                    style: GoogleFonts.montserrat(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18),
                                   ),
-                              if(widget.orderlist.pickup_time != "none")
-                                  Container(
-                                    alignment: Alignment.topLeft,
-                                    child: Card(
-                                      color:  Colors.grey.shade200,
-                                      shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10)),
-                                      child: InkWell(
-                                        
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(4.0)
-                                              .copyWith(left: 8, right: 8),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.access_time),
-                                              const SizedBox(
-                                                width: 10,
-                                              ),
-                                              Text(
-                                                widget.orderlist.pickup_time,
-                                                style: GoogleFonts
-                                                    .montserrat(),
-                                              )
-                                            ],
-                                          ),
+                                ),
+                              if (widget.orderlist.pickup_time != "none")
+                                Container(
+                                  alignment: Alignment.topLeft,
+                                  child: Card(
+                                    color: Colors.grey.shade200,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10)),
+                                    child: InkWell(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4.0)
+                                            .copyWith(left: 8, right: 8),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.access_time),
+                                            const SizedBox(
+                                              width: 10,
+                                            ),
+                                            Text(
+                                              widget.orderlist.pickup_time,
+                                              style: GoogleFonts.montserrat(),
+                                            )
+                                          ],
                                         ),
                                       ),
                                     ),
                                   ),
+                                ),
 
                               if (widget.orderlist.notes != "N/A")
                                 const SizedBox(
@@ -881,7 +928,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                                 ),
 
                               const SizedBox(
-                                height: 10,
+                                height: 5,
                               ),
                               const Divider(),
                               Padding(
@@ -925,6 +972,27 @@ class _OrderDetailsState extends State<OrderDetails> {
                                   ],
                                 ),
                               ),
+                              if (widget.orderlist.totalReturned != '0')
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0)
+                                      .copyWith(top: 0),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          "Total Returned",
+                                          style: GoogleFonts.montserrat(
+                                              fontSize: 14, color: Colors.grey),
+                                        ),
+                                      ),
+                                      Text(
+                                        "Ksh ${widget.orderlist.totalReturned}",
+                                        style: GoogleFonts.montserrat(
+                                            fontSize: 14, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               Padding(
                                 padding:
                                     const EdgeInsets.all(8.0).copyWith(top: 0),
@@ -952,7 +1020,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                         ),
                       ),
                     ),
-                    if(widget.orderlist.friendName != 'none')
+                    if (widget.orderlist.friendName != 'none')
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Row(
@@ -970,7 +1038,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                           ],
                         ),
                       ),
-                    if(widget.orderlist.friendName != 'none')
+                    if (widget.orderlist.friendName != 'none')
                       Padding(
                         padding: const EdgeInsets.all(8.0).copyWith(top: 0),
                         child: Row(
@@ -978,18 +1046,17 @@ class _OrderDetailsState extends State<OrderDetails> {
                             Text(
                               "Friend Name: ",
                               style: GoogleFonts.montserrat(
-                                   fontWeight: FontWeight.bold),
+                                  fontWeight: FontWeight.bold),
                             ),
                             const Spacer(),
                             Text(
                               widget.orderlist.friendName,
-                              style: GoogleFonts.montserrat(
-                                   color: Colors.grey),
+                              style: GoogleFonts.montserrat(color: Colors.grey),
                             ),
                           ],
                         ),
                       ),
-                    if(widget.orderlist.friendPhone != 'none')
+                    if (widget.orderlist.friendPhone != 'none')
                       Padding(
                         padding: const EdgeInsets.all(8.0).copyWith(top: 0),
                         child: Row(
@@ -1002,15 +1069,12 @@ class _OrderDetailsState extends State<OrderDetails> {
                             const Spacer(),
                             Text(
                               widget.orderlist.friendPhone,
-                              style: GoogleFonts.montserrat(
-                                  color: Colors.grey),
+                              style: GoogleFonts.montserrat(color: Colors.grey),
                             ),
                           ],
                         ),
                       ),
-                    if(widget.orderlist.friendPhone != 'none')
-                      const Divider(),
-                    
+                    if (widget.orderlist.friendPhone != 'none') const Divider(),
                     Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Text(
@@ -1024,6 +1088,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: widget.orderlist.orderItems.length,
                       itemBuilder: (context, index) => Card(
+                        color: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -1071,8 +1136,8 @@ class _OrderDetailsState extends State<OrderDetails> {
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          widget.orderlist.orderItems[index]
-                                              .item,
+                                          widget
+                                              .orderlist.orderItems[index].item,
                                           style: GoogleFonts.montserrat(
                                               fontSize: 18,
                                               fontWeight: FontWeight.bold),
@@ -1089,7 +1154,8 @@ class _OrderDetailsState extends State<OrderDetails> {
                                   child: Row(
                                     children: [
                                       Text(
-                                        widget.orderlist.orderItems[index].category,
+                                        widget.orderlist.orderItems[index]
+                                            .category,
                                         style: GoogleFonts.montserrat(
                                             fontSize: 14,
                                             color: Colors.grey,
@@ -1103,9 +1169,13 @@ class _OrderDetailsState extends State<OrderDetails> {
                                   child: Row(
                                     children: [
                                       Text(
-                                        double.parse(widget.orderlist.orderItems[index].weight) != 1 ?
-                                        "${(double.parse(widget.orderlist.orderItems[index].weight) * double.parse(widget.orderlist.orderItems[index].quantity)).toStringAsFixed(2)} ${widget.orderlist.orderItems[index].product.unitShort} @ ${widget.orderlist.orderItems[index].sellPrice}" : 
-                                        "${(double.parse(widget.orderlist.orderItems[index].weight) * double.parse(widget.orderlist.orderItems[index].quantity)).toStringAsFixed(2)} ${widget.orderlist.orderItems[index].product.unitShort} * ${widget.orderlist.orderItems[index].sellPrice}",
+                                        double.parse(widget
+                                                    .orderlist
+                                                    .orderItems[index]
+                                                    .weight) !=
+                                                1
+                                            ? "${(double.parse(widget.orderlist.orderItems[index].weight) * double.parse(widget.orderlist.orderItems[index].quantity)).toStringAsFixed(2)} ${widget.orderlist.orderItems[index].product.unitShort} @ ${widget.orderlist.orderItems[index].sellPrice}"
+                                            : "${(double.parse(widget.orderlist.orderItems[index].weight) * double.parse(widget.orderlist.orderItems[index].quantity)).toStringAsFixed(2)} ${widget.orderlist.orderItems[index].product.unitShort} * ${widget.orderlist.orderItems[index].sellPrice}",
                                         style: GoogleFonts.montserrat(
                                             fontSize: 16),
                                       ),
@@ -1127,7 +1197,34 @@ class _OrderDetailsState extends State<OrderDetails> {
                                       ),
                                     ],
                                   ),
-                                )
+                                ),
+                                if (widget.orderlist.orderItems[index]
+                                        .totalReturned !=
+                                    '0')
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 4.0),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          "Quantity Unavailable: ",
+                                          style: GoogleFonts.montserrat(
+                                            fontSize: 15,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                        const SizedBox(
+                                          width: 10,
+                                        ),
+                                        Text(
+                                          "${widget.orderlist.orderItems[index].totalReturned} ${widget.orderlist.orderItems[index].product.unitShort}",
+                                          style: GoogleFonts.montserrat(
+                                            fontSize: 15,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
                               ],
                             ))
                           ],
@@ -1137,10 +1234,12 @@ class _OrderDetailsState extends State<OrderDetails> {
                     const SizedBox(
                       height: 20,
                     ),
-                    if (widget.orderlist.isPaid == 0)
+                    if (widget.orderlist.isPaid == 0 &&
+                        widget.orderlist.cancelled == 0)
                       Padding(
                         padding: const EdgeInsets.all(4.0),
                         child: Card(
+                          color: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -1211,7 +1310,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                                       color: primaryColor,
                                       elevation: 3,
                                       child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
+                                        padding: const EdgeInsets.all(10.0),
                                         child: Row(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.center,
@@ -1405,6 +1504,45 @@ class _OrderDetailsState extends State<OrderDetails> {
                           ),
                         ),
                       ),
+                    if (widget.orderlist.status != 'Shipping' &&
+                        widget.orderlist.status != 'Delivered' &&
+                        widget.orderlist.cancelled == 0)
+                      const SizedBox(
+                        height: 20,
+                      ),
+                    if (widget.orderlist.status != 'Shipping' &&
+                        widget.orderlist.status != 'Delivered' &&
+                        widget.orderlist.cancelled == 0)
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: InkWell(
+                          onTap: () {
+                            _viewmoreModalBottomSheet(context);
+                          },
+                          child: Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            color: Colors.orange,
+                            elevation: 3,
+                            child: Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "Cancel Order",
+                                    style: GoogleFonts.montserrat(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     const SizedBox(
                       height: 50,
                     ),
@@ -1416,5 +1554,185 @@ class _OrderDetailsState extends State<OrderDetails> {
         )),
       ),
     );
+  }
+
+  void _viewmoreModalBottomSheet(context) {
+    var height = MediaQuery.of(context).size.height;
+    var width = MediaQuery.of(context).size.width;
+    showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: true,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20), topRight: Radius.circular(20))),
+        builder: (BuildContext bc) {
+          return Padding(
+            padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: Container(
+              padding: const EdgeInsets.all(8).copyWith(top: 15),
+              decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(20),
+                      topLeft: Radius.circular(20))),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  Container(
+                    decoration:
+                        BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                    child: Center(
+                      child: Text(
+                        "Cancel Reason",
+                        style: GoogleFonts.montserrat(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 30,
+                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.all(8.0).copyWith(top: 20),
+                  //   child: Text(
+                  //     "Cancel Notes",
+                  //     style: GoogleFonts.montserrat(
+                  //         fontSize: 20, fontWeight: FontWeight.bold),
+                  //   ),
+                  // ),
+                  Container(
+                    margin: const EdgeInsets.all(8).copyWith(top: 0),
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: TextFormField(
+                      cursorColor: primaryColor,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 18,
+                      ),
+                      onChanged: (value) {},
+                      maxLines: 3,
+                      controller: _cancelNotesController,
+                      decoration: InputDecoration(
+                        enabledBorder: const OutlineInputBorder(
+                          borderSide:
+                              BorderSide(color: Colors.white, width: 0.0),
+                        ),
+                        focusedBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white),
+                        ),
+                        errorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        counterText: "",
+                        contentPadding: const EdgeInsets.all(12),
+                        hintText: "Notes (eg. Taken too long to process)",
+                        hintStyle: GoogleFonts.montserrat(
+                            color: primaryColor, fontSize: 18),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 30,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: InkWell(
+                      onTap: () {
+                        if (_cancelNotesController.text.isNotEmpty) {
+                          cancelOrder();
+                        } else {
+                          showToast(
+                              "failed. Enter reason for your cancellation",
+                              Colors.red);
+                        }
+                      },
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        color: primaryColor,
+                        elevation: 3,
+                        child: Padding(
+                          padding: const EdgeInsets.all(10.0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Save",
+                                style: GoogleFonts.montserrat(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+  }
+
+  void cancelOrder() async {
+    await progressDialog.show();
+    var data = {
+      'order_id': widget.orderlist.id,
+      'reason': _cancelNotesController.text.isNotEmpty
+          ? _cancelNotesController.text
+          : "N/A"
+    };
+    var body = json.encode(data);
+    final uri = Uri.parse("${mainUrl}cancelOrder");
+    final res = await http.post(uri,
+        headers: {
+          "Content-Type": "application/json",
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: body);
+
+    if (res.statusCode == 200) {
+      await progressDialog.hide();
+      showToast("Success. Order cancelled", Colors.green);
+    } else {
+      showToast("Failed. Try again", Colors.green);
+      await progressDialog.hide();
+    }
+  }
+
+  void showToast(message, color) {
+    Fluttertoast.showToast(
+        msg: message,
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 1,
+        backgroundColor: color,
+        textColor: Colors.white,
+        fontSize: 16.0);
+  }
+
+  void showAwesome() {
+    // AwesomeDialog(
+    //   context: context,
+    //   dialogType: DialogType.info,
+    //   animType: AnimType.rightSlide,
+    //   title: 'Confirmation!',
+    //   desc:
+    //       "Confirm to cancel this order? Please note this action is irreversible",
+    //   btnCancelOnPress: () {},
+    //   btnCancelText: "Close",
+    //   btnOkText: "Cancel",
+    //   btnOkOnPress: () {},
+    // ).show();
   }
 }

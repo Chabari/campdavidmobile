@@ -1,58 +1,18 @@
-import 'package:ars_progress_dialog/dialog.dart';
-import 'package:campdavid/helpers/categorylist.dart';
 import 'package:campdavid/helpers/constants.dart';
-import 'package:campdavid/helpers/productlists.dart';
-import 'package:campdavid/helpers/unitlist.dart';
-import 'package:campdavid/src/checkout.dart';
-import 'package:campdavid/src/login.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
-import 'package:rflutter_alert/rflutter_alert.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_html/flutter_html.dart';
 import 'package:html/dom.dart' as dom;
+import 'package:simple_html_css/simple_html_css.dart';
 
-import '../helpers/cartmodel.dart';
-import '../helpers/databaseHelper.dart';
-import '../helpers/packageslist.dart';
-import '../helpers/productdetailscontroller.dart';
+import '../helpers/productscontroller.dart';
 
-class ProductDetails extends StatefulWidget {
-  ProductList productList;
-
-  ProductDetails({required this.productList});
-  _ProductDetailsState createState() => _ProductDetailsState();
-}
-
-class _ProductDetailsState extends State<ProductDetails> {
-  final controller = Get.put(ProductDetailsController());
+class ProductDetails extends GetWidget<ProductController> {
+  const ProductDetails({super.key});
 
   @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-
-    SharedPreferences.getInstance().then((value) {
-      if (value.getString('token') != null) {
-        controller.isLogged = true;
-        controller.update();
-      }
-    });
-
-    controller.total = double.parse(widget.productList.sellingPrice);
-    controller.update();
-  }
-
-  bool checkproductelement(var key, ProductList product) {
-    return product.customitems.any((element) => element.amount.contains(key));
-  }
-
-  @override
-  Widget build(context) => GetBuilder<ProductDetailsController>(
+  Widget build(context) => GetBuilder<ProductController>(
       builder: (_) => Scaffold(
             backgroundColor: primaryColor,
             body: SizedBox(
@@ -71,7 +31,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                             decoration: BoxDecoration(
                                 image: DecorationImage(
                                     image: NetworkImage(
-                                      imageUrl + widget.productList.photo,
+                                      imageUrl + _.selectedProductList!.photo,
                                     ),
                                     fit: BoxFit.cover)),
                           ),
@@ -108,13 +68,13 @@ class _ProductDetailsState extends State<ProductDetails> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        widget.productList.name,
+                                        _.selectedProductList!.name,
                                         style: GoogleFonts.montserrat(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold),
                                       ),
                                     ),
-                                    if (widget.productList.stock < 2)
+                                    if (_.selectedProductList!.stock < 2)
                                       Container(
                                         decoration: BoxDecoration(
                                             borderRadius:
@@ -136,11 +96,11 @@ class _ProductDetailsState extends State<ProductDetails> {
                                       ),
                                     // InkWell(
                                     //   onTap: () {
-                                    //     if (widget.productList.tags.length > 0) {
+                                    //     if (_.selectedProductList!.tags.length > 0) {
                                     //       if (selectedtag == null) {
                                     //         _db
                                     //             .checkexistsItem(
-                                    //                 widget.productList.id.toString())
+                                    //                 _.selectedProductList!.id.toString())
                                     //             .then((value) {
                                     //           if (value.length > 0) {
                                     //             Fluttertoast.showToast(
@@ -155,17 +115,17 @@ class _ProductDetailsState extends State<ProductDetails> {
                                     //             OrderItemsModel item =
                                     //                 OrderItemsModel(
                                     //               amount:
-                                    //                   widget.productList.sellingPrice,
+                                    //                   _.selectedProductList!.sellingPrice,
                                     //               category: widget
                                     //                   .productList.category.name,
-                                    //               image: widget.productList.photo,
-                                    //               productId: widget.productList.id
+                                    //               image: _.selectedProductList!.photo,
+                                    //               productId: _.selectedProductList!.id
                                     //                   .toString(),
                                     //               tag_id: "none",
                                     //               tag_name: "none",
                                     //               tag_price: "none",
                                     //               productname:
-                                    //                   widget.productList.name,
+                                    //                   _.selectedProductList!.name,
                                     //               quantity: widget
                                     //                   .productList.quantity
                                     //                   .toString(),
@@ -191,7 +151,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                     //       } else {
                                     //         _db
                                     //             .checkexistsItem(
-                                    //                 "${widget.productList.id}.${selectedtag!.id}")
+                                    //                 "${_.selectedProductList!.id}.${selectedtag!.id}")
                                     //             .then((value) {
                                     //           if (value.length > 0) {
                                     //             Fluttertoast.showToast(
@@ -206,17 +166,17 @@ class _ProductDetailsState extends State<ProductDetails> {
                                     //             OrderItemsModel item =
                                     //                 OrderItemsModel(
                                     //               amount:
-                                    //                   widget.productList.sellingPrice,
+                                    //                   _.selectedProductList!.sellingPrice,
                                     //               category: widget
                                     //                   .productList.category.name,
-                                    //               image: widget.productList.photo,
+                                    //               image: _.selectedProductList!.photo,
                                     //               productId:
-                                    //                   "${widget.productList.id}.${selectedtag!.id}",
+                                    //                   "${_.selectedProductList!.id}.${selectedtag!.id}",
                                     //               tag_id: selectedtag!.id.toString(),
                                     //               tag_name: selectedtag!.tag.name,
                                     //               tag_price: selectedtag!.price,
                                     //               productname:
-                                    //                   widget.productList.name,
+                                    //                   _.selectedProductList!.name,
                                     //               quantity: widget
                                     //                   .productList.quantity
                                     //                   .toString(),
@@ -243,7 +203,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                     //     } else {
                                     //       _db
                                     //           .checkexistsItem(
-                                    //               widget.productList.id.toString())
+                                    //               _.selectedProductList!.id.toString())
                                     //           .then((value) {
                                     //         if (value.length > 0) {
                                     //           var item = value.first;
@@ -273,17 +233,17 @@ class _ProductDetailsState extends State<ProductDetails> {
                                     //         } else {
                                     //           OrderItemsModel item = OrderItemsModel(
                                     //             amount:
-                                    //                 widget.productList.sellingPrice,
+                                    //                 _.selectedProductList!.sellingPrice,
                                     //             category:
-                                    //                 widget.productList.category.name,
-                                    //             image: widget.productList.photo,
+                                    //                 _.selectedProductList!.category.name,
+                                    //             image: _.selectedProductList!.photo,
                                     //             productId:
-                                    //                 widget.productList.id.toString(),
+                                    //                 _.selectedProductList!.id.toString(),
                                     //             tag_id: "none",
                                     //             tag_name: "none",
                                     //             tag_price: "none",
-                                    //             productname: widget.productList.name,
-                                    //             quantity: widget.productList.quantity
+                                    //             productname: _.selectedProductList!.name,
+                                    //             quantity: _.selectedProductList!.quantity
                                     //                 .toString(),
                                     //           );
                                     //           _db.newCart(item).then((value) {
@@ -305,7 +265,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                     //         }
                                     //       });
                                     //       setState(() {
-                                    //         cartproducts.add(widget.productList);
+                                    //         cartproducts.add(_.selectedProductList!);
                                     //       });
                                     //     }
                                     //   },
@@ -320,7 +280,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                               Padding(
                                 padding: const EdgeInsets.only(left: 8.0),
                                 child: Text(
-                                  widget.productList.category.name,
+                                  _.selectedProductList!.category.name,
                                   style: GoogleFonts.montserrat(
                                       color: Colors.grey),
                                 ),
@@ -335,20 +295,20 @@ class _ProductDetailsState extends State<ProductDetails> {
                                           fontSize: 10, color: Colors.grey),
                                     ),
                                     Text(
-                                      widget.productList.sellingPrice,
+                                      _.selectedProductList!.sellingPrice,
                                       style: GoogleFonts.montserrat(
                                           fontSize: 20,
                                           color: primaryColor,
                                           fontWeight: FontWeight.bold),
                                     ),
                                     Text(
-                                      " / ${widget.productList.unit.shortName}",
+                                      " / ${_.selectedProductList!.unit.shortName}",
                                       style: GoogleFonts.montserrat(
                                           fontSize: 12, color: Colors.grey),
                                     ),
-                                    // if(widget.productList.minimumPrice != "0" && widget.productList.minimumPrice != "none" )
+                                    // if(_.selectedProductList!.minimumPrice != "0" && _.selectedProductList!.minimumPrice != "none" )
                                     //     Text(
-                                    //       " (Minimum Price Ksh ${widget.productList.minimumPrice} )",
+                                    //       " (Minimum Price Ksh ${_.selectedProductList!.minimumPrice} )",
                                     //       style: GoogleFonts.montserrat(
                                     //           fontSize: 10, color: Colors.grey),
                                     //     ),
@@ -356,7 +316,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                 ),
                               ),
                               // add scroll with add button at end
-                              if (widget.productList.tags.length > 0)
+                              if (_.selectedProductList!.tags.isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.all(8.0)
                                       .copyWith(bottom: 0, top: 20),
@@ -367,7 +327,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                   ),
                                 ),
 
-                              if (widget.productList.tags.length > 0)
+                              if (_.selectedProductList!.tags.isNotEmpty)
                                 Container(
                                   padding: const EdgeInsets.all(8.0)
                                       .copyWith(top: 0),
@@ -383,56 +343,56 @@ class _ProductDetailsState extends State<ProductDetails> {
                                           shrinkWrap: true,
                                           physics:
                                               const NeverScrollableScrollPhysics(),
-                                          itemCount:
-                                              widget.productList.tags.length,
+                                          itemCount: _
+                                              .selectedProductList!.tags.length,
                                           itemBuilder: (context, index) => Card(
                                             shape: RoundedRectangleBorder(
                                                 borderRadius:
                                                     BorderRadius.circular(10),
                                                 side: BorderSide(
-                                                    color: widget
-                                                            .productList
+                                                    color: _
+                                                            .selectedProductList!
                                                             .tags[index]
                                                             .isselected
                                                         ? Colors.grey
                                                         : primaryColor)),
-                                            color: widget.productList
+                                            color: _.selectedProductList!
                                                     .tags[index].isselected
                                                 ? Colors.grey
                                                 : Colors.white,
                                             child: InkWell(
                                               onTap: () {
-                                                widget.productList.tags.forEach(
-                                                  (element) {
-                                                    if (element.id !=
-                                                            widget
-                                                                .productList
-                                                                .tags[index]
-                                                                .id &&
-                                                        element.isselected) {
-                                                      element.isselected =
-                                                          false;
-                                                      _.update();
-                                                    }
-                                                  },
-                                                );
-                                                widget.productList.tags[index]
+                                                for (var element in _
+                                                    .selectedProductList!
+                                                    .tags) {
+                                                  if (element.id !=
+                                                          _.selectedProductList!
+                                                              .tags[index].id &&
+                                                      element.isselected) {
+                                                    element.isselected = false;
+                                                    _.update();
+                                                  }
+                                                }
+                                                _
+                                                        .selectedProductList!
+                                                        .tags[index]
                                                         .isselected =
-                                                    !widget.productList
+                                                    !_.selectedProductList!
                                                         .tags[index].isselected;
                                                 _.update();
-                                                if (widget.productList
+                                                if (_.selectedProductList!
                                                     .tags[index].isselected) {
-                                                  _.total = double.parse(widget
-                                                      .productList
+                                                  _.total = double.parse(_
+                                                      .selectedProductList!
                                                       .tags[index]
                                                       .price);
-                                                  _.selectedtag = widget
-                                                      .productList.tags[index];
+                                                  _.selectedtag = _
+                                                      .selectedProductList!
+                                                      .tags[index];
                                                   _.update();
                                                 } else {
-                                                  _.total = double.parse(widget
-                                                      .productList
+                                                  _.total = double.parse(_
+                                                      .selectedProductList!
                                                       .sellingPrice);
                                                   _.selectedtag = null;
                                                   _.update();
@@ -442,7 +402,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                                 padding:
                                                     const EdgeInsets.all(8.0),
                                                 child: Text(
-                                                  "${widget.productList.tags[index].tag.name} - Ksh ${widget.productList.tags[index].price}",
+                                                  "${_.selectedProductList!.tags[index].tag.name} - Ksh ${_.selectedProductList!.tags[index].price}",
                                                   style: GoogleFonts.montserrat(
                                                       fontWeight:
                                                           FontWeight.bold),
@@ -535,9 +495,10 @@ class _ProductDetailsState extends State<ProductDetails> {
                               const SizedBox(
                                 height: 10,
                               ),
-                              if (widget.productList.description != "none" &&
-                                  widget.productList.description != "N/A" &&
-                                  widget.productList.description != null)
+                              if (_.selectedProductList!.description !=
+                                      "none" &&
+                                  _.selectedProductList!.description != "N/A" &&
+                                  _.selectedProductList!.description != null)
                                 Padding(
                                   padding: const EdgeInsets.all(8.0)
                                       .copyWith(bottom: 0),
@@ -548,14 +509,22 @@ class _ProductDetailsState extends State<ProductDetails> {
                                         fontWeight: FontWeight.bold),
                                   ),
                                 ),
-                              if (widget.productList.description != "none" &&
-                                  widget.productList.description != "N/A" &&
-                                  widget.productList.description != null)
+                              if (_.selectedProductList!.description !=
+                                      "none" &&
+                                  _.selectedProductList!.description != "N/A" &&
+                                  _.selectedProductList!.description != null)
                                 Padding(
                                     padding: const EdgeInsets.all(8.0)
                                         .copyWith(top: 0),
-                                    child: Html(
-                                        data: widget.productList.description)),
+                                    child: Builder(builder: (context) {
+                                      return HTML.toRichText(context,
+                                          _.selectedProductList!.description);
+                                    })),
+                              // Padding(
+                              //     padding: const EdgeInsets.all(8.0)
+                              //         .copyWith(top: 0),
+                              //     child: Html(
+                              //         data: _.selectedProductList!.description)),
                               const SizedBox(
                                 height: 10,
                               ),
@@ -596,11 +565,11 @@ class _ProductDetailsState extends State<ProductDetails> {
                                               .copyWith(right: 10),
                                           child: InkWell(
                                             onTap: () {
-                                              _.categorylists
-                                                  .forEach((element) {
+                                              for (var element
+                                                  in _.categorylists) {
                                                 element.selected = false;
                                                 _.update();
-                                              });
+                                              }
                                               _.categorylists[index].selected =
                                                   true;
                                               _.categoryList =
@@ -608,8 +577,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                               _.update();
                                               if (_.categoryList != null &&
                                                   _.categoryList!.productslists
-                                                          .length <
-                                                      1) {
+                                                      .isEmpty) {
                                                 _
                                                     .getProducts(_
                                                         .categorylists[index]
@@ -670,7 +638,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                               ),
 
                               _.categoryList != null &&
-                                      _.categoryList!.productslists.length > 0
+                                      _.categoryList!.productslists.isNotEmpty
                                   ? ListView.builder(
                                       itemCount:
                                           _.categoryList!.productslists.length,
@@ -678,6 +646,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                       physics:
                                           const NeverScrollableScrollPhysics(),
                                       itemBuilder: (context, index) => Card(
+                                                color: Colors.white,
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(20),
@@ -686,15 +655,16 @@ class _ProductDetailsState extends State<ProductDetails> {
                                         elevation: 3,
                                         child: InkWell(
                                           onTap: () {
+                                            _.selectedProductList = _
+                                                .categoryList!
+                                                .productslists[index];
+                                            _.update();
+
                                             Navigator.pushReplacement(
                                                 context,
                                                 MaterialPageRoute(
                                                   builder: (context) =>
-                                                      ProductDetails(
-                                                          productList: _
-                                                                  .categoryList!
-                                                                  .productslists[
-                                                              index]),
+                                                      const ProductDetails(),
                                                 ));
                                           },
                                           child: Row(
@@ -854,14 +824,14 @@ class _ProductDetailsState extends State<ProductDetails> {
                           Expanded(
                             child: InkWell(
                               onTap: () {
-                                if (widget.productList.stock < 2) {
+                                if (_.selectedProductList!.stock < 2) {
                                   _.showToast(
                                       "Failed. The product is out of stock.",
                                       Colors.red);
                                 } else {
-                                  _.setItems(widget.productList);
+                                  _.setItems(_.selectedProductList!);
 
-                                  showDialog(widget.productList);
+                                  _.showDialog(_.selectedProductList!, context);
                                 }
                               },
                               child: Padding(
@@ -871,7 +841,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  color: widget.productList.stock < 2
+                                  color: _.selectedProductList!.stock < 2
                                       ? Colors.grey.shade500
                                       : primaryColor,
                                   elevation: 3,
@@ -899,601 +869,4 @@ class _ProductDetailsState extends State<ProductDetails> {
               )),
             ),
           ));
-
-  void showDialog(ProductList product) {
-    showModalBottomSheet(
-      context: context,
-      enableDrag: true,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(32), topRight: Radius.circular(32))),
-      builder: (BuildContext context) {
-        return GetBuilder<ProductDetailsController>(
-            builder: (_) => Padding(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom),
-              child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(32),
-                          topRight: Radius.circular(32)),
-                    ),
-                    height: product.unit.allowDecimal == 1 ? 520 : 450,
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          height: product.unit.allowDecimal == 1 ? 370 : 320,
-                          width: getWidth(context),
-                          child: SingleChildScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                const SizedBox(
-                                  height: 20,
-                                ),
-                                Row(
-                                  children: [
-                                    Text(
-                                      'Select Item',
-                                      style: GoogleFonts.montserrat(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    InkWell(
-                                        onTap: () {
-                                          Navigator.pop(context);
-                                        },
-                                        child: const Icon(Icons.clear))
-                                  ],
-                                ),
-                                const SizedBox(
-                                  height: 10,
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                      // border: Border.fromBorderSide(top)
-                                      borderRadius: BorderRadius.circular(20),
-                                      color: product.isselected
-                                          ? primaryColor.withOpacity(0.1)
-                                          : product.stock < 1
-                                              ? Colors.grey.shade200
-                                              : Colors.white),
-                                  child: Center(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                                child: Text(
-                                              "1 ${product.unit.name}",
-                                              style: GoogleFonts.montserrat(
-                                                fontSize: 14,
-                                              ),
-                                            )),
-                                            InkWell(
-                                              onTap: () {
-                                                if (product.quantity >
-                                                    double.parse(product
-                                                        .minimumQuantity)) {
-                                                  product.quantity--;
-                                                  product.isselected = true;
-                                                  _.update();
-                                                } else {
-                                                  product.quantity = 0;
-                                                  product.isselected = false;
-                                                  _.update();
-                                                }
-                                              },
-                                              child: const Card(
-                                                child: Icon(
-                                                    Icons.remove_circle_outline),
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                              width: 4,
-                                            ),
-                                            Text(
-                                              product.isselected == false
-                                                  ? "0"
-                                                  : product.quantity.toString(),
-                                              style: GoogleFonts.montserrat(
-                                                  fontSize: 16,
-                                                  color: primaryColor,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                            const SizedBox(
-                                              width: 4,
-                                            ),
-                                            InkWell(
-                                              onTap: () {
-                                                if (product.stock < 1) {
-                                                  _.showToast(
-                                                      "Failed. The product is out of stock.",
-                                                      Colors.red);
-                                                } else {
-                                                  if (product.isselected ==
-                                                      false) {
-                                                    product.quantity =
-                                                        double.parse(product
-                                                            .minimumQuantity);
-                                                    product.isselected = true;
-                                                    _.update();
-                                                  } else {
-                                                    if (product.stock <=
-                                                        double.parse(product
-                                                            .quantity
-                                                            .toString())) {
-                                                      _.showToast(
-                                                          "Quantity entered is higher than the available stock.",
-                                                          Colors.red);
-                                                    } else {
-                                                      product.quantity++;
-                                                      product.isselected = true;
-                                                      _.update();
-                                                    }
-                                                  }
-                                                }
-                                              },
-                                              child: const Card(
-                                                child: Icon(Icons
-                                                    .add_circle_outline_sharp),
-                                              ),
-                                            )
-                                          ],
-                                        ),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                product.isselected == false
-                                                    ? "Ksh ${product.sellingPrice}"
-                                                    : " ${product.quantity} * ${product.sellingPrice}",
-                                                style: GoogleFonts.montserrat(
-                                                  fontSize: 14,
-                                                ),
-                                              ),
-                                            ),
-                                            Text(
-                                              product.isselected == false
-                                                  ? ""
-                                                  : "Ksh ${double.parse(product.sellingPrice) * product.quantity}",
-                                              style: GoogleFonts.montserrat(
-                                                fontSize: 14,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                ListView.builder(
-                                  itemCount: product.tags.length,
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  padding:
-                                      const EdgeInsets.only(top: 0, bottom: 8),
-                                  itemBuilder: (context, ind) => Container(
-                                    padding: const EdgeInsets.all(6),
-                                    margin: const EdgeInsets.only(top: 5),
-                                    decoration: BoxDecoration(
-                                        // border: Border.fromBorderSide(top)
-                                        borderRadius: BorderRadius.circular(20),
-                                        color: product.tags[ind].isselected
-                                            ? primaryColor.withOpacity(0.1)
-                                            : Colors.white),
-                                    child: Center(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          // ...............
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                  child: Text(
-                                                product.tags[ind].tag.name,
-                                                style: GoogleFonts.montserrat(
-                                                  fontSize: 14,
-                                                ),
-                                              )),
-                                              InkWell(
-                                                onTap: () {
-                                                  if (product.tags[ind].quantity >
-                                                      double.parse(product
-                                                          .minimumQuantity)) {
-                                                    product.tags[ind].quantity--;
-                                                    product.tags[ind].isselected =
-                                                        true;
-                                                    _.update();
-                                                  } else {
-                                                    product.tags[ind].quantity =
-                                                        0;
-                                                    product.tags[ind].isselected =
-                                                        false;
-                                                    _.update();
-                                                  }
-                                                },
-                                                child: const Card(
-                                                  child: Icon(Icons
-                                                      .remove_circle_outline),
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                width: 4,
-                                              ),
-                                              Text(
-                                                product.tags[ind].isselected ==
-                                                        false
-                                                    ? "0"
-                                                    : product.tags[ind].quantity
-                                                        .toString(),
-                                                style: GoogleFonts.montserrat(
-                                                    fontSize: 16,
-                                                    color: primaryColor,
-                                                    fontWeight: FontWeight.bold),
-                                              ),
-                                              const SizedBox(
-                                                width: 4,
-                                              ),
-                                              InkWell(
-                                                onTap: () {
-                                                  if (product
-                                                          .tags[ind].isselected ==
-                                                      false) {
-                                                    product.tags[ind].quantity =
-                                                        double.parse(product
-                                                            .minimumQuantity);
-                                                    product.tags[ind].isselected =
-                                                        true;
-                                                  } else {
-                                                    if (product.tags[ind].stock <=
-                                                        product
-                                                            .tags[ind].quantity) {
-                                                    } else {
-                                                      product.tags[ind]
-                                                          .isselected = true;
-                                                      product
-                                                          .tags[ind].quantity++;
-                                                    }
-                                                  }
-                                                  // }
-                                                },
-                                                child: const Card(
-                                                  child: Icon(Icons
-                                                      .add_circle_outline_sharp),
-                                                ),
-                                              )
-                                            ],
-                                          ),
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  product.tags[ind].isselected ==
-                                                          false
-                                                      ? "Ksh ${product.tags[ind].price}"
-                                                      : " ${product.tags[ind].quantity} * ${product.tags[ind].price}",
-                                                  style: GoogleFonts.montserrat(
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                              ),
-                                              Text(
-                                                product.tags[ind].isselected ==
-                                                        false
-                                                    ? ""
-                                                    : "Ksh ${double.parse(product.tags[ind].price) * product.tags[ind].quantity}",
-                                                style: GoogleFonts.montserrat(
-                                                  fontSize: 14,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-            
-                                          // .......................
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                if (product.unit.allowDecimal == 1)
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                          child: Container(
-                                        color: Colors.black,
-                                        height: 1,
-                                      )),
-                                      Text(
-                                        "Or",
-                                        style: GoogleFonts.montserrat(
-                                          fontSize: 18,
-                                        ),
-                                      ),
-                                      Expanded(
-                                          child: Container(
-                                        color: Colors.black,
-                                        height: 1,
-                                      )),
-                                    ],
-                                  ),
-                                if (product.unit.allowDecimal == 1)
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0)
-                                        .copyWith(top: 10),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            "Specify Amount (Minimum Ksh ${product.minimumPrice})",
-                                            style: GoogleFonts.montserrat(
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                        // const SizedBox(
-                                        //   width: 10,
-                                        // ),
-                                        // Text(
-                                        //   "Qty",
-                                        //   style: GoogleFonts
-                                        //       .montserrat(
-                                        //     fontSize:
-                                        //         12,
-                                        //   ),
-                                        // ),
-                                        // const SizedBox(
-                                        //   width: 40,
-                                        // ),
-                                        // Text(
-                                        //   "Action",
-                                        //   style: GoogleFonts.montserrat(
-                                        //     fontSize: 12,
-                                        //   ),
-                                        // ),
-                                      ],
-                                    ),
-                                  ),
-                                if (product.unit.allowDecimal == 1)
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0)
-                                        .copyWith(top: 0),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Container(
-                                            height: 45,
-                                            decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(15),
-                                                border: Border.all(
-                                                    color: primaryColor)),
-                                            child: TextFormField(
-                                                onChanged: (value) {
-                                                  if (value.isNotEmpty) {
-                                                    if (int.parse(value.trim()) >
-                                                            500 &&
-                                                        int.parse(value.trim()) <
-                                                            300000) {}
-                                                  }
-                                                },
-                                                controller: _.amountController,
-                                                keyboardType:
-                                                    TextInputType.number,
-                                                decoration: InputDecoration(
-                                                    contentPadding:
-                                                        const EdgeInsets.only(
-                                                            left: 10,
-                                                            right: 10,
-                                                            top: 0,
-                                                            bottom: 8),
-                                                    hintText: "Amount",
-                                                    labelText: "Enter amount",
-                                                    labelStyle:
-                                                        GoogleFonts.montserrat(
-                                                            fontSize: 12,
-                                                            color: Colors.black),
-                                                    border: InputBorder.none,
-                                                    hintStyle: GoogleFonts.lato(
-                                                        fontSize: 14,
-                                                        color: Colors.grey)),
-                                                style: GoogleFonts.lato(
-                                                    fontSize: 14,
-                                                    color: Colors.black,
-                                                    fontWeight: FontWeight.bold)),
-                                          ),
-                                        ),
-            
-                                        // InkWell(
-                                        //   onTap: () {},
-                                        //   child: Container(
-                                        //     height: 45,
-                                        //     width: 90,
-                                        //     padding: const EdgeInsets.all(12),
-                                        //     decoration: BoxDecoration(
-                                        //         borderRadius:
-                                        //             BorderRadius.circular(15),
-                                        //         color: Colors.white,
-                                        //         boxShadow: [
-                                        //           BoxShadow(
-                                        //             color: Colors.grey.shade300,
-                                        //             blurRadius: 5,
-                                        //           )
-                                        //         ]),
-                                        //     child: Center(
-                                        //       child: Text("Add Cart",
-                                        //           style: GoogleFonts.lato(
-                                        //               fontSize: 14,
-                                        //               fontWeight:
-                                        //                   FontWeight.bold)),
-                                        //     ),
-                                        //   ),
-                                        // )
-                                      ],
-                                    ),
-                                  ),
-            
-                                const SizedBox(
-                                  height: 10,
-                                ),
-                                if (product.category.packagingsList.length > 0)
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0)
-                                        .copyWith(bottom: 0),
-                                    child: Text(
-                                      "Choose how you want your order packaged(Optional)",
-                                      style: GoogleFonts.montserrat(
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                if (product.category.packagingsList.length > 0)
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: SizedBox(
-                                      width: getWidth(context),
-                                      height: 45,
-                                      child: DropdownButtonFormField2(
-                                        decoration: InputDecoration(
-                                          isDense: true,
-                                          contentPadding: EdgeInsets.zero,
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(15),
-                                          ),
-                                          //Add more decoration as you want here
-                                          //Add label If you want but add hint outside the decoration to be aligned in the button perfectly.
-                                        ),
-                                        isExpanded: true,
-                                        hint: const Text(
-                                          'Select Package',
-                                          style: TextStyle(fontSize: 14),
-                                        ),
-                                        items: product.category.packagingsList
-                                            .map((item) =>
-                                                DropdownMenuItem<PackageList>(
-                                                  value: item,
-                                                  child: Text(
-                                                    item.packageName,
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                    ),
-                                                  ),
-                                                ))
-                                            .toList(),
-                                        validator: (value) {
-                                          if (value == null) {
-                                            return 'Please select package.';
-                                          }
-                                          return null;
-                                        },
-                                        onChanged: (value) {
-                                          _.selectedPackage =
-                                              value as PackageList;
-                                          _.update();
-            
-                                          //Do something when changing the item if you want.
-                                        },
-                                        onSaved: (value) {
-                                          _.selectedPackage =
-                                              value as PackageList;
-                                          _.update();
-                                        },
-                                        buttonStyleData: const ButtonStyleData(
-                                          height: 60,
-                                          padding: EdgeInsets.only(
-                                              left: 20, right: 10),
-                                        ),
-                                        iconStyleData: const IconStyleData(
-                                          icon: Icon(
-                                            Icons.arrow_drop_down,
-                                            color: Colors.black45,
-                                          ),
-                                          iconSize: 30,
-                                        ),
-                                        dropdownStyleData: DropdownStyleData(
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(15),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                //
-                              ],
-                            ),
-                          ),
-                        ),
-            
-                        const Spacer(),
-            
-                        InkWell(
-                          onTap: () {
-                            _.addCart(product, "checkout", context);
-                          },
-                          child: Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            color: primaryColor,
-                            elevation: 3,
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Center(
-                                child: Text(
-                                  "Proceed to Checkout",
-                                  style: GoogleFonts.montserrat(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        //const SizedBox(height: 10,),
-                        InkWell(
-                          onTap: () {
-                            _.addCart(product, "cart", context);
-                          },
-                          child: Card(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            color: Colors.black,
-                            elevation: 3,
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Center(
-                                child: Text(
-                                  "Add to Cart",
-                                  style: GoogleFonts.montserrat(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-            ));
-      },
-    );
-  }
 }

@@ -1,5 +1,4 @@
 import 'package:campdavid/helpers/constants.dart';
-import 'package:campdavid/src/login.dart';
 import 'package:campdavid/src/mainpanel.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,7 +13,9 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   int currentIndex = 0;
-  final PageController _pageController = PageController(initialPage: 0,);
+  final PageController _pageController = PageController(
+    initialPage: 0,
+  );
 
   List<AllinOnboardModel> allinonboardlist = [
     AllinOnboardModel(
@@ -32,9 +33,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   ];
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    
+
     SharedPreferences.getInstance().then((value) {
       value.setBool('isFirst', false);
     });
@@ -90,32 +90,33 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             if (currentIndex > -1) {
                               if (currentIndex == 0) {
                                 Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => MainPanel(),
-                                  ));
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => MainPanel(),
+                                    ));
                               } else {
                                 setState(() {
                                   currentIndex--;
 
                                   _pageController.animateToPage(currentIndex,
-                                      duration: Duration(milliseconds: 500),
+                                      duration:
+                                          const Duration(milliseconds: 500),
                                       curve: Curves.easeOut);
                                 });
                               }
                             }
                           },
-                          child: Text(
-                            currentIndex == 0 ? "Skip" : "Previous",
-                            style: GoogleFonts.montserrat(
-                                fontSize: 18, color: Colors.white),
-                          ),
                           style: ElevatedButton.styleFrom(
-                            primary: primaryColor,
+                            backgroundColor: primaryColor,
                             shape: const RoundedRectangleBorder(
                                 borderRadius: BorderRadius.only(
                                     topRight: Radius.circular(20.0),
                                     bottomRight: Radius.circular(20.0))),
+                          ),
+                          child: Text(
+                            currentIndex == 0 ? "Skip" : "Previous",
+                            style: GoogleFonts.montserrat(
+                                fontSize: 18, color: Colors.white),
                           ),
                         ),
                         ElevatedButton(
@@ -125,22 +126,22 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 currentIndex++;
 
                                 _pageController.animateToPage(currentIndex,
-                                    duration: Duration(milliseconds: 500),
+                                    duration: const Duration(milliseconds: 500),
                                     curve: Curves.easeOut);
                               });
                             }
                           },
-                          child: Text(
-                            "Next",
-                            style: GoogleFonts.montserrat(
-                                fontSize: 18, color: Colors.white),
-                          ),
                           style: ElevatedButton.styleFrom(
-                            primary: primaryColor,
+                            backgroundColor: primaryColor,
                             shape: const RoundedRectangleBorder(
                                 borderRadius: BorderRadius.only(
                                     topLeft: Radius.circular(20.0),
                                     bottomLeft: Radius.circular(20.0))),
+                          ),
+                          child: Text(
+                            "Next",
+                            style: GoogleFonts.montserrat(
+                                fontSize: 18, color: Colors.white),
                           ),
                         )
                       ],
@@ -151,42 +152,44 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     left: MediaQuery.of(context).size.width * 0.33,
                     child: ElevatedButton(
                       onPressed: () {
-                       Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => MainPanel(),
-                                  ));
+                        Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MainPanel(),
+                            ));
                       },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20.0)),
+                      ),
                       child: Text(
                         "Get Started",
                         style: GoogleFonts.montserrat(
                             fontSize: 18, color: Colors.white),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        primary: primaryColor,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20.0)),
-                      ),
                     ),
                   ),
             if (currentIndex != 0)
               Positioned(
-                top: 10,
-                right: 10,
-                child: InkWell(
-                  onTap: () {
-                  Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => MainPanel(),
-                                  ));
-                },
-                  child: Text(
-                          "Skip",
-                          style: GoogleFonts.montserrat(
-                              fontSize: 20, color: primaryColor,),
-                        ),
-                ))
+                  top: 10,
+                  right: 10,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MainPanel(),
+                          ));
+                    },
+                    child: Text(
+                      "Skip",
+                      style: GoogleFonts.montserrat(
+                        fontSize: 20,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ))
           ],
         ),
       ),
@@ -196,11 +199,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   AnimatedContainer buildDot({int? index}) {
     return AnimatedContainer(
       duration: kAnimationDuration,
-      margin: EdgeInsets.only(right: 5),
+      margin: const EdgeInsets.only(right: 5),
       height: 6,
       width: currentIndex == index ? 20 : 6,
       decoration: BoxDecoration(
-        color: currentIndex == index ? primarygreen : Color(0xFFD8D8D8),
+        color: currentIndex == index ? primarygreen : const Color(0xFFD8D8D8),
         borderRadius: BorderRadius.circular(3),
       ),
     );

@@ -1,5 +1,9 @@
 import 'package:campdavid/helpers/cartmodel.dart';
+import 'package:campdavid/helpers/productscontroller.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 const Color lightgreenshede = Color(0xFFF0FAF6);
@@ -15,14 +19,15 @@ const Color secondaryColor = Color(0xFF961a1d);
 const Color bgColor = Color(0xFFedeef9);
 const Color backGround = Color(0xFFe58e9b);
 
+final productCtl = Get.find<ProductController>();
 
-const kGoogleApiKey = "AIzaSyCUwQCkzVToSTN9PCH2KKuIO9MjCBzS1as";
+String kGoogleApiKey = "AIzaSyAm41IGdUL9e0wiPYhW_m0PtdiD069PwLU";
 
 const mainUrl = "https://delivery.campdavidbutchery.com/api/";
 const imageUrl = "https://delivery.campdavidbutchery.com/storage/";
 
-// const mainUrl = "http://192.168.0.105/campdavidbackend/public/api/";
-// const imageUrl = "http://192.168.0.105/campdavidbackend/storage/";
+// const mainUrl = "http://192.168.0.105/api/";
+// const imageUrl = "http://192.168.0.105/storage/";
 
 const kAnimationDuration = Duration(milliseconds: 200);
 
@@ -62,4 +67,19 @@ String getdatestringformat(String date) {
   String formated = DateFormat.MMMd().format(dat).toString();
 
   return formated;
+}
+
+InputDecoration itemDec() {
+  return InputDecoration(
+    contentPadding: const EdgeInsets.all(8),
+    hintText: "Search location",
+    hintStyle: GoogleFonts.montserrat(fontSize: 20).copyWith(
+      color: Colors.black.withOpacity(0.5),
+      fontWeight: FontWeight.w500,
+    ),
+    prefixIcon: Icon(
+      Icons.search,
+      color: Colors.black.withOpacity(0.5),
+    ),
+  );
 }

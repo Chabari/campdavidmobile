@@ -15,11 +15,12 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   var _deviceToken;
+
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-
     SharedPreferences.getInstance().then((value) async {
       if (value.getString('device_token') == null) {
         _deviceToken = await FirebaseMessaging.instance.getToken();
@@ -67,6 +68,9 @@ class _SplashScreenState extends State<SplashScreen> {
         Map<String, dynamic> user = json1['user'];
         setState(() {
           mpref.setString("token", json1['token']);
+          if (json1['kGoogleApiKey'] != null) {
+            kGoogleApiKey = json1['kGoogleApiKey'];
+          }
           mpref.setString("name", user['first_name'] + " " + user['last_name']);
           mpref.setString("user_id", user['id'].toString());
           if (user['location'] != null) {

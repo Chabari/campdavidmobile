@@ -1,12 +1,11 @@
 import 'dart:convert';
 
-import 'package:ars_progress_dialog/dialog.dart';
 import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/src/entercode.dart';
-import 'package:campdavid/src/mainpanel.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -18,7 +17,7 @@ class ResetPassword extends StatefulWidget {
 
 class _ResetPasswordState extends State<ResetPassword> {
   final _phoneCOntroller = TextEditingController();
-  late ArsProgressDialog progressDialog;
+  late ProgressDialog progressDialog;
   late SharedPreferences mprefs;
   late FToast fToast;
 
@@ -32,10 +31,9 @@ class _ResetPasswordState extends State<ResetPassword> {
         _phoneCOntroller.text = widget.phone;
       });
     }
-    progressDialog = ArsProgressDialog(context,
-        blur: 2,
-        backgroundColor: const Color(0x33000000),
-        animationDuration: const Duration(milliseconds: 500));
+    
+    progressDialog = ProgressDialog(context,
+        type: ProgressDialogType.normal, isDismissible: true, showLogs: false);
   }
 
   _showToast(fToast, message, color, icon) {
@@ -78,7 +76,7 @@ class _ResetPasswordState extends State<ResetPassword> {
 
   void validateSubmit() async {
     if (_phoneCOntroller.text.isNotEmpty) {
-      progressDialog.show();
+      await progressDialog.show();
       var data = {'phone': _phoneCOntroller.text};
       var body = json.encode(data);
       var response = await http.post(Uri.parse("${mainUrl}sendVerification"),
@@ -88,11 +86,9 @@ class _ResetPasswordState extends State<ResetPassword> {
           },
           body: body);
 
-      print(response.body);
-
       Map<String, dynamic> json1 = json.decode(response.body);
       if (response.statusCode == 200) {
-        progressDialog.dismiss();
+       await progressDialog.hide();
         if (json1['success'] == "1") {
           if (mounted) {
             _showToast(fToast, json1['message'], Colors.green, Icons.check);
@@ -185,6 +181,7 @@ class _ResetPasswordState extends State<ResetPassword> {
                   ),
                 ),
                 Card(
+                                                color: Colors.white,
                   margin: const EdgeInsets.all(10).copyWith(top: 5),
                   elevation: 3,
                   shape: RoundedRectangleBorder(

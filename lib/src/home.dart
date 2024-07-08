@@ -1,103 +1,24 @@
 import 'dart:async';
 
-import 'package:ars_progress_dialog/dialog.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:campdavid/helpers/cartmodel.dart';
-import 'package:campdavid/helpers/categorylist.dart';
 import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/helpers/packageslist.dart';
 import 'package:campdavid/helpers/productlists.dart';
-import 'package:campdavid/src/checkout.dart';
 import 'package:campdavid/src/productdetails.dart';
 import 'package:campdavid/src/productspage.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:rflutter_alert/rflutter_alert.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../helpers/databaseHelper.dart';
 import '../helpers/homecontroller.dart';
 
-class Home extends StatefulWidget {
+class Home extends GetWidget<HomeController> {
   Function(int) screen;
   Function(bool) fetch;
-  Home({required this.screen, required this.fetch});
-  _HomeState createState() => _HomeState();
-}
-
-class _HomeState extends State<Home> {
-  final HomeController ctrl = Get.find();
-  String? version;
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-
-    Future.delayed(const Duration(seconds: 1)).then((value) {
-      SharedPreferences.getInstance().then((value) {
-        if (value.getString('version') != null) {
-          version = value.getString('version');
-          checkversion();
-        }
-      });
-    });
-  }
-
-  void checkversion() async {
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-
-    String buildNumber = packageInfo.buildNumber;
-    print(buildNumber);
-    if (version != null && int.parse(version!) > int.parse(buildNumber)) {
-      _onAlertButtonsPressed(context);
-    }
-  }
-
-  _onAlertButtonsPressed(context) {
-    Alert(
-      context: context,
-      type: AlertType.warning,
-      style: AlertStyle(
-        backgroundColor: Colors.white,
-        titleStyle: GoogleFonts.lato(
-            color: primaryColor, fontSize: 25, fontWeight: FontWeight.bold),
-        descStyle: GoogleFonts.lato(color: Colors.grey, fontSize: 18),
-      ),
-      title: "Update Alert!",
-      desc:
-          "Please update Camp David Butchey app to expirience more and great features",
-      buttons: [
-        DialogButton(
-          child: Text(
-            "CANCEL",
-            style: GoogleFonts.lato(color: Colors.white, fontSize: 18),
-          ),
-          onPressed: () => Navigator.pop(context),
-          color: Colors.black,
-        ),
-        DialogButton(
-          child: Text(
-            "UPDATE",
-            style: GoogleFonts.lato(color: Colors.white, fontSize: 18),
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          gradient: const LinearGradient(colors: [
-            secondaryColor,
-            primaryColor,
-          ]),
-        )
-      ],
-    ).show();
-  }
+  Home({super.key, required this.screen, required this.fetch});
 
   @override
   Widget build(context) => GetBuilder<HomeController>(
@@ -108,6 +29,23 @@ class _HomeState extends State<Home> {
                 const SizedBox(
                   height: 20,
                 ),
+
+                if (_.imageSliders.isNotEmpty)
+                  Container(
+                    decoration:
+                        BoxDecoration(borderRadius: BorderRadius.circular(20)),
+                    padding: const EdgeInsets.all(8.0),
+                    child: CarouselSlider(
+                      options: CarouselOptions(
+                        autoPlay: true,
+                        viewportFraction: 1,
+                        aspectRatio: 2.0,
+                        enlargeCenterPage: true,
+                      ),
+                      items: _.imageSliders,
+                    ),
+                  ),
+
                 Container(
                   padding: const EdgeInsets.all(8),
                   margin: const EdgeInsets.only(right: 20),
@@ -132,9 +70,8 @@ class _HomeState extends State<Home> {
                       ),
                       InkWell(
                         onTap: () {
-                          setState(() {
-                            widget.screen(1);
-                          });
+                          screen(1);
+                          _.update();
                         },
                         child: Container(
                           decoration: const BoxDecoration(
@@ -152,7 +89,7 @@ class _HomeState extends State<Home> {
                   ),
                 ),
                 //const SizedBox(height: 10,),
-                _.categorylists.length > 0
+                _.categorylists.isNotEmpty
                     ? GridView.builder(
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
@@ -165,13 +102,18 @@ class _HomeState extends State<Home> {
                         itemCount: _.categorylists.length,
                         itemBuilder: (BuildContext context, int index) =>
                             InkWell(
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ProductsPage(
-                                    categoryList: _.categorylists[index]),
-                              )),
+                          onTap: () {
+                            productCtl.selectedCategoryList =
+                                _.categorylists[index];
+                            productCtl.selectCategory();
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ProductsPage(),
+                                ));
+                          },
                           child: Card(
+                                                color: Colors.white,
                             elevation: 3,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20)),
@@ -187,7 +129,7 @@ class _HomeState extends State<Home> {
                                     imageBuilder: (context, imageProvider) =>
                                         Container(
                                       decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
+                                        borderRadius: BorderRadius.circular(20),
                                         image: DecorationImage(
                                           image: imageProvider,
                                           fit: BoxFit.cover,
@@ -274,14 +216,19 @@ class _HomeState extends State<Home> {
                       const SizedBox(
                         width: 8,
                       ),
-                      if (_.categorylists.length > 0)
+                      if (_.categorylists.isNotEmpty)
                         InkWell(
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ProductsPage(
-                                    categoryList: _.categorylists.first),
-                              )),
+                          onTap: () {
+                            productCtl.selectedCategoryList =
+                                _.categorylists.first;
+                            productCtl.selectCategory();
+
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ProductsPage(),
+                                ));
+                          },
                           child: Container(
                             decoration: const BoxDecoration(
                                 shape: BoxShape.circle, color: primaryColor),
@@ -300,7 +247,7 @@ class _HomeState extends State<Home> {
                 const SizedBox(
                   height: 10,
                 ),
-                _.productslists.length > 0
+                _.productslists.isNotEmpty
                     ? GridView.builder(
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
@@ -312,16 +259,20 @@ class _HomeState extends State<Home> {
                         padding: const EdgeInsets.only(top: 8, bottom: 8),
                         itemCount: _.productslists.length,
                         itemBuilder: (BuildContext context, int index) => Card(
+                                                color: Colors.white,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20)),
                           elevation: 3,
                           child: InkWell(
                             onTap: () {
+                              productCtl.selectedProductList =
+                                  _.productslists[index];
+                              productCtl.update();
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => ProductDetails(
-                                        productList: _.productslists[index]),
+                                    builder: (context) =>
+                                        const ProductDetails(),
                                   ));
                             },
                             child: Column(
@@ -334,7 +285,7 @@ class _HomeState extends State<Home> {
                                   imageBuilder: (context, imageProvider) =>
                                       Container(
                                     decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
+                                      borderRadius: BorderRadius.circular(20),
                                       image: DecorationImage(
                                         image: imageProvider,
                                         fit: BoxFit.cover,
@@ -444,7 +395,8 @@ class _HomeState extends State<Home> {
                                         } else {
                                           _.updateclickItems(
                                               _.productslists[index]);
-                                          showDialog(_.productslists[index]);
+                                          showDialog(
+                                              _.productslists[index], context);
                                         }
                                       },
                                       child: Padding(
@@ -487,7 +439,7 @@ class _HomeState extends State<Home> {
             ),
           ));
 
-  void showDialog(ProductList product) {
+  void showDialog(ProductList product, BuildContext context) {
     showModalBottomSheet(
       context: context,
       enableDrag: true,
@@ -498,9 +450,9 @@ class _HomeState extends State<Home> {
       builder: (BuildContext context) {
         return GetBuilder<HomeController>(
             builder: (_) => Padding(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom),
-              child: Container(
+                  padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom),
+                  child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(
                       color: Colors.white,
@@ -583,8 +535,9 @@ class _HomeState extends State<Home> {
                                                 }
                                               },
                                               child: const Card(
-                                                child: Icon(
-                                                    Icons.remove_circle_outline),
+                                                color: Colors.white,
+                                                child: Icon(Icons
+                                                    .remove_circle_outline),
                                               ),
                                             ),
                                             const SizedBox(
@@ -633,6 +586,7 @@ class _HomeState extends State<Home> {
                                                 }
                                               },
                                               child: const Card(
+                                                color: Colors.white,
                                                 child: Icon(Icons
                                                     .add_circle_outline_sharp),
                                               ),
@@ -697,22 +651,25 @@ class _HomeState extends State<Home> {
                                               )),
                                               InkWell(
                                                 onTap: () {
-                                                  if (product.tags[ind].quantity >
+                                                  if (product
+                                                          .tags[ind].quantity >
                                                       double.parse(product
                                                           .minimumQuantity)) {
-                                                    product.tags[ind].quantity--;
-                                                    product.tags[ind].isselected =
-                                                        true;
+                                                    product
+                                                        .tags[ind].quantity--;
+                                                    product.tags[ind]
+                                                        .isselected = true;
                                                     _.update();
                                                   } else {
                                                     product.tags[ind].quantity =
                                                         0;
-                                                    product.tags[ind].isselected =
-                                                        false;
+                                                    product.tags[ind]
+                                                        .isselected = false;
                                                     _.update();
                                                   }
                                                 },
                                                 child: const Card(
+                                                color: Colors.white,
                                                   child: Icon(Icons
                                                       .remove_circle_outline),
                                                 ),
@@ -729,25 +686,27 @@ class _HomeState extends State<Home> {
                                                 style: GoogleFonts.montserrat(
                                                     fontSize: 16,
                                                     color: primaryColor,
-                                                    fontWeight: FontWeight.bold),
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                               ),
                                               const SizedBox(
                                                 width: 4,
                                               ),
                                               InkWell(
                                                 onTap: () {
-                                                  if (product
-                                                          .tags[ind].isselected ==
+                                                  if (product.tags[ind]
+                                                          .isselected ==
                                                       false) {
                                                     product.tags[ind].quantity =
                                                         double.parse(product
                                                             .minimumQuantity);
-                                                    product.tags[ind].isselected =
-                                                        true;
+                                                    product.tags[ind]
+                                                        .isselected = true;
                                                   } else {
-                                                    if (product.tags[ind].stock <=
-                                                        product
-                                                            .tags[ind].quantity) {
+                                                    if (product
+                                                            .tags[ind].stock <=
+                                                        product.tags[ind]
+                                                            .quantity) {
                                                     } else {
                                                       product.tags[ind]
                                                           .isselected = true;
@@ -758,6 +717,7 @@ class _HomeState extends State<Home> {
                                                   // }
                                                 },
                                                 child: const Card(
+                                                color: Colors.white,
                                                   child: Icon(Icons
                                                       .add_circle_outline_sharp),
                                                 ),
@@ -768,7 +728,8 @@ class _HomeState extends State<Home> {
                                             children: [
                                               Expanded(
                                                 child: Text(
-                                                  product.tags[ind].isselected ==
+                                                  product.tags[ind]
+                                                              .isselected ==
                                                           false
                                                       ? "Ksh ${product.tags[ind].price}"
                                                       : " ${product.tags[ind].quantity} * ${product.tags[ind].price}",
@@ -788,7 +749,7 @@ class _HomeState extends State<Home> {
                                               ),
                                             ],
                                           ),
-            
+
                                           // .......................
                                         ],
                                       ),
@@ -870,9 +831,11 @@ class _HomeState extends State<Home> {
                                             child: TextFormField(
                                                 onChanged: (value) {
                                                   if (value.isNotEmpty) {
-                                                    if (int.parse(value.trim()) >
+                                                    if (int.parse(
+                                                                value.trim()) >
                                                             500 &&
-                                                        int.parse(value.trim()) <
+                                                        int.parse(
+                                                                value.trim()) <
                                                             300000) {}
                                                   }
                                                 },
@@ -891,7 +854,8 @@ class _HomeState extends State<Home> {
                                                     labelStyle:
                                                         GoogleFonts.montserrat(
                                                             fontSize: 12,
-                                                            color: Colors.black),
+                                                            color:
+                                                                Colors.black),
                                                     border: InputBorder.none,
                                                     hintStyle: GoogleFonts.lato(
                                                         fontSize: 14,
@@ -899,10 +863,11 @@ class _HomeState extends State<Home> {
                                                 style: GoogleFonts.lato(
                                                     fontSize: 14,
                                                     color: Colors.black,
-                                                    fontWeight: FontWeight.bold)),
+                                                    fontWeight:
+                                                        FontWeight.bold)),
                                           ),
                                         ),
-                                        
+
                                         // InkWell(
                                         //   onTap: () {},
                                         //   child: Container(
@@ -931,7 +896,7 @@ class _HomeState extends State<Home> {
                                       ],
                                     ),
                                   ),
-            
+
                                 const SizedBox(
                                   height: 10,
                                 ),
@@ -990,7 +955,7 @@ class _HomeState extends State<Home> {
                                           _.selectedPackage =
                                               value as PackageList;
                                           _.update();
-            
+
                                           //Do something when changing the item if you want.
                                         },
                                         onSaved: (value) {
@@ -1024,13 +989,12 @@ class _HomeState extends State<Home> {
                             ),
                           ),
                         ),
-            
+
                         const Spacer(),
-            
+
                         InkWell(
                           onTap: () {
                             _.addCart(product, "checkout", context);
-            
                           },
                           child: Card(
                             shape: RoundedRectangleBorder(
@@ -1080,10 +1044,8 @@ class _HomeState extends State<Home> {
                       ],
                     ),
                   ),
-            ));
+                ));
       },
     );
   }
-
-
 }

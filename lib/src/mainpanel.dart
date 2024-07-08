@@ -11,6 +11,7 @@ import 'package:campdavid/src/useraccount.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:rolling_bottom_bar/rolling_bottom_bar.dart';
 import 'package:rolling_bottom_bar/rolling_bottom_bar_item.dart';
@@ -31,7 +32,15 @@ class _MainPanelState extends State<MainPanel> {
 
   AppUpdateInfo? _updateInfo;
 
-  bool _flexibleUpdateAvailable = false;
+  bool flexibleUpdateAvailable = false;
+
+  void deleteCacheDir() async {
+    var tempDir = await getTemporaryDirectory();
+
+    if (tempDir.existsSync()) {
+      tempDir.deleteSync(recursive: true);
+    }
+  }
 
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> checkForUpdate() async {
@@ -41,9 +50,11 @@ class _MainPanelState extends State<MainPanel> {
       });
       if (_updateInfo?.updateAvailability ==
           UpdateAvailability.updateAvailable) {
-        InAppUpdate.startFlexibleUpdate().then((_) {
+        deleteCacheDir();
+
+        InAppUpdate.performImmediateUpdate().then((_) {
           setState(() {
-            _flexibleUpdateAvailable = true;
+            flexibleUpdateAvailable = true;
           });
         }).catchError((e) {
           showSnack(e.toString());
@@ -63,7 +74,6 @@ class _MainPanelState extends State<MainPanel> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     checkForUpdate();
     _db.getAllCarts().then((scans) {

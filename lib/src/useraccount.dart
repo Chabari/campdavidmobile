@@ -214,6 +214,7 @@ class _UserAccountState extends State<UserAccount> {
           ),
           if (isLoggedIn)
             Card(
+              color: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -271,6 +272,7 @@ class _UserAccountState extends State<UserAccount> {
             ),
           if (isLoggedIn)
             Card(
+              color: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -306,6 +308,7 @@ class _UserAccountState extends State<UserAccount> {
               ),
             ),
           Card(
+            color: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -419,6 +422,7 @@ class _UserAccountState extends State<UserAccount> {
             ),
           ),
           Card(
+            color: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -453,6 +457,7 @@ class _UserAccountState extends State<UserAccount> {
             ),
           ),
           Card(
+            color: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),

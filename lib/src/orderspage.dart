@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:ars_progress_dialog/dialog.dart';
 import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/helpers/orderlist.dart';
 import 'package:campdavid/src/orderdetails.dart';
@@ -10,6 +9,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:http/http.dart' as http;
+import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../helpers/cartmodel.dart';
@@ -34,7 +34,7 @@ class _OrdersPageState extends State<OrdersPage> {
   double total = 0;
   bool loading = true;
 
-  late ArsProgressDialog progressDialog;
+  late ProgressDialog progressDialog;
   List<String> dates = [];
 
   @override
@@ -43,10 +43,9 @@ class _OrdersPageState extends State<OrdersPage> {
     super.initState();
     fToast = FToast();
     fToast.init(context);
-    progressDialog = ArsProgressDialog(context,
-        blur: 2,
-        backgroundColor: const Color(0x33000000),
-        animationDuration: const Duration(milliseconds: 500));
+    
+    progressDialog = ProgressDialog(context,
+        type: ProgressDialogType.normal, isDismissible: true, showLogs: false);
 
     SharedPreferences.getInstance().then((value) {
       if (value.getString('token') != null) {
@@ -129,7 +128,6 @@ class _OrdersPageState extends State<OrdersPage> {
           'Authorization': 'Bearer $token',
         },
         body: body);
-    print(res.body);
     return orderListFromJson(res.body);
   }
 
@@ -158,7 +156,7 @@ class _OrdersPageState extends State<OrdersPage> {
     ordersList.forEach((element) {
       switch (selected) {
         case 0:
-          if (element.status != "Delivered") {
+          if (element.status != "Delivered" && element.cancelled == 0) {
             setState(() {
               filteredordersList.add(element);
             });
@@ -166,6 +164,13 @@ class _OrdersPageState extends State<OrdersPage> {
           break;
         case 1:
           if (element.status == "Delivered") {
+            setState(() {
+              filteredordersList.add(element);
+            });
+          }
+          break;
+        case 2:
+          if (element.cancelled == 1) {
             setState(() {
               filteredordersList.add(element);
             });
@@ -186,7 +191,7 @@ class _OrdersPageState extends State<OrdersPage> {
     final uri = Uri.parse("${mainUrl}getTodaySummary");
     final res = await http.post(uri,
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json", 
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
@@ -200,7 +205,7 @@ class _OrdersPageState extends State<OrdersPage> {
   }
 
   void initiateMpesa(order_id) async {
-    progressDialog.show();
+    await progressDialog.show();
     Map data = {
       'order_id': order_id.toString(),
       'phone': _phoneController.text,
@@ -216,7 +221,7 @@ class _OrdersPageState extends State<OrdersPage> {
 
     Map<String, dynamic> json1 = json.decode(response.body);
     if (response.statusCode == 200) {
-      progressDialog.dismiss();
+      await progressDialog.hide();
       if (json1['success'] == "1") {
         Fluttertoast.showToast(
             msg: json1['message'],
@@ -237,7 +242,7 @@ class _OrdersPageState extends State<OrdersPage> {
             fontSize: 16.0);
       }
     } else {
-      progressDialog.dismiss();
+      await progressDialog.hide();
       Fluttertoast.showToast(
           msg: json1['message'],
           toastLength: Toast.LENGTH_SHORT,
@@ -463,6 +468,7 @@ class _OrdersPageState extends State<OrdersPage> {
                           color: selectedDate == dates[index]
                               ? Colors.white
                               : primaryColor,
+                          elevation: 0,
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: Text(
@@ -474,7 +480,6 @@ class _OrdersPageState extends State<OrdersPage> {
                               ),
                             ),
                           ),
-                          elevation: 0,
                         ),
                       ),
                     ),
@@ -503,103 +508,140 @@ class _OrdersPageState extends State<OrdersPage> {
                     const SizedBox(
                       height: 30,
                     ),
-                    Row(
-                      children: [
-                        Card(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          color: selected == 0 ? Colors.grey : Colors.white,
-                          elevation: 2,
-                          child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                selected = 0;
-                                filterorders();
-                              });
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.pending),
-                                  Text(
-                                    "Pending Orders",
-                                    style: GoogleFonts.montserrat(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14),
+                    SizedBox(
+                      width: getWidth(context),
+                      height: 50,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: [
+                            Card(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                              color: selected == 0 ? Colors.grey : Colors.white,
+                              elevation: 2,
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    selected = 0;
+                                    filterorders();
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.pending),
+                                      Text(
+                                        "Pending Orders",
+                                        style: GoogleFonts.montserrat(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
+                            Card(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                              color: selected == 1 ? Colors.grey : Colors.white,
+                              elevation: 2,
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    selected = 1;
+                                    filterorders();
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.delivery_dining),
+                                      Text(
+                                        "Delivered",
+                                        style: GoogleFonts.montserrat(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Card(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                              color: selected == 2 ? Colors.grey : Colors.white,
+                              elevation: 2,
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    selected = 2;
+                                    filterorders();
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.cancel),
+                                      Text(
+                                        "Cancelled",
+                                        style: GoogleFonts.montserrat(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Card(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                              color: selected == 3 ? Colors.grey : Colors.white,
+                              elevation: 3,
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    selected = 3;
+                                    filterorders();
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.list),
+                                      Text(
+                                        "All",
+                                        style: GoogleFonts.montserrat(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )
+                          ],
                         ),
-                        Card(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          color: selected == 1 ? Colors.grey : Colors.white,
-                          elevation: 2,
-                          child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                selected = 1;
-                                filterorders();
-                              });
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.delivery_dining),
-                                  Text(
-                                    "Delivered",
-                                    style: GoogleFonts.montserrat(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Card(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          color: selected == 2 ? Colors.grey : Colors.white,
-                          elevation: 2,
-                          child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                selected = 2;
-                                filterorders();
-                              });
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.list),
-                                  Text(
-                                    "All",
-                                    style: GoogleFonts.montserrat(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        )
-                      ],
+                      ),
                     ),
                     const SizedBox(
                       height: 20,
                     ),
-                    filteredordersList.length > 0
+                    filteredordersList.isNotEmpty
                         ? ListView.builder(
                             itemCount: filteredordersList.length,
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemBuilder: (context, index) => Card(
+                                                color: Colors.white,
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20)),
                               elevation: 3,
@@ -741,151 +783,171 @@ class _OrdersPageState extends State<OrdersPage> {
                                       const SizedBox(
                                         height: 8,
                                       ),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: InkWell(
-                                              onTap: () => Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        OrderDetails(
-                                                            orderlist:
-                                                                filteredordersList[
-                                                                    index]),
-                                                  )),
-                                              child: Card(
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                  // side: const BorderSide(
-                                                  //     color: Colors.black)
-                                                ),
-                                                elevation: 3,
-                                                color: Colors.white,
-                                                child: Padding(
-                                                  padding: const EdgeInsets.all(
-                                                      15.0),
-                                                  child: Center(
-                                                    child: Text(
-                                                      "View Details",
-                                                      style: GoogleFonts
-                                                          .montserrat(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              fontSize: 14),
-                                                    ),
+                                      if(filteredordersList[index].cancelled == 0)
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: InkWell(
+                                                onTap: () => Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          OrderDetails(
+                                                              orderlist:
+                                                                  filteredordersList[
+                                                                      index]),
+                                                    )),
+                                                child: Card(
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(20),
+                                                    // side: const BorderSide(
+                                                    //     color: Colors.black)
                                                   ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: InkWell(
-                                              onTap: () {
-                                                setState(() {
-                                                  _phoneController.text =
-                                                      filteredordersList[index]
-                                                          .customer_phone;
-                                                });
-                                                if (filteredordersList[index]
-                                                        .isPaid ==
-                                                    0) {
-                                                  Alert(
-                                                      context: context,
-                                                      title:
-                                                          "Mpesa Confirmation",
-                                                      content: Column(
-                                                        children: [
-                                                          Text(
-                                                            "Please confirm the number to send mpesa stk push notification",
-                                                            style: GoogleFonts
-                                                                .montserrat(
-                                                                    fontSize:
-                                                                        12,
-                                                                    color: Colors
-                                                                        .grey),
-                                                          ),
-                                                          const SizedBox(
-                                                            height: 10,
-                                                          ),
-                                                          TextField(
-                                                            controller:
-                                                                _phoneController,
-                                                            style: GoogleFonts
-                                                                .montserrat(
-                                                                    color: Colors
-                                                                        .black),
-                                                            decoration:
-                                                                const InputDecoration(
-                                                              labelText:
-                                                                  'Phone',
-                                                            ),
-                                                          ),
-                                                        ],
+                                                  elevation: 3,
+                                                  color: Colors.white,
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.all(
+                                                        15.0),
+                                                    child: Center(
+                                                      child: Text(
+                                                        "View Details",
+                                                        style: GoogleFonts
+                                                            .montserrat(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 14),
                                                       ),
-                                                      buttons: [
-                                                        DialogButton(
-                                                          color: primaryColor,
-                                                          onPressed: () {
-                                                            Navigator.pop(
-                                                                context);
-                                                            initiateMpesa(
-                                                                filteredordersList[
-                                                                        index]
-                                                                    .id);
-                                                          },
-                                                          child: Text(
-                                                            "SUBMIT",
-                                                            style: GoogleFonts
-                                                                .montserrat(
-                                                                    color: Colors
-                                                                        .white,
-                                                                    fontSize:
-                                                                        20),
-                                                          ),
-                                                        )
-                                                      ]).show();
-                                                }
-                                              },
-                                              child: Card(
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                ),
-                                                color: filteredordersList[index]
-                                                            .isPaid ==
-                                                        1
-                                                    ? Colors.green
-                                                    : primaryColor,
-                                                elevation: 3,
-                                                child: Padding(
-                                                  padding: const EdgeInsets.all(
-                                                      15.0),
-                                                  child: Center(
-                                                    child: Text(
-                                                      filteredordersList[index]
-                                                                  .isPaid ==
-                                                              1
-                                                          ? "Paid"
-                                                          : "Make Payment",
-                                                      style: GoogleFonts
-                                                          .montserrat(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              color:
-                                                                  Colors.white,
-                                                              fontSize: 14),
                                                     ),
                                                   ),
                                                 ),
                                               ),
                                             ),
+                                            Expanded(
+                                              child: InkWell(
+                                                onTap: () {
+                                                  setState(() {
+                                                    _phoneController.text =
+                                                        filteredordersList[index]
+                                                            .customer_phone;
+                                                  });
+                                                  if (filteredordersList[index]
+                                                          .isPaid ==
+                                                      0) {
+                                                    Alert(
+                                                        context: context,
+                                                        title:
+                                                            "Mpesa Confirmation",
+                                                        content: Column(
+                                                          children: [
+                                                            Text(
+                                                              "Please confirm the number to send mpesa stk push notification",
+                                                              style: GoogleFonts
+                                                                  .montserrat(
+                                                                      fontSize:
+                                                                          12,
+                                                                      color: Colors
+                                                                          .grey),
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 10,
+                                                            ),
+                                                            TextField(
+                                                              controller:
+                                                                  _phoneController,
+                                                              style: GoogleFonts
+                                                                  .montserrat(
+                                                                      color: Colors
+                                                                          .black),
+                                                              decoration:
+                                                                  const InputDecoration(
+                                                                labelText:
+                                                                    'Phone',
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        buttons: [
+                                                          DialogButton(
+                                                            color: primaryColor,
+                                                            onPressed: () {
+                                                              Navigator.pop(
+                                                                  context);
+                                                              initiateMpesa(
+                                                                  filteredordersList[
+                                                                          index]
+                                                                      .id);
+                                                            },
+                                                            child: Text(
+                                                              "SUBMIT",
+                                                              style: GoogleFonts
+                                                                  .montserrat(
+                                                                      color: Colors
+                                                                          .white,
+                                                                      fontSize:
+                                                                          20),
+                                                            ),
+                                                          )
+                                                        ]).show();
+                                                  }
+                                                },
+                                                child: Card(
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(20),
+                                                  ),
+                                                  color: filteredordersList[index]
+                                                              .isPaid ==
+                                                          1
+                                                      ? Colors.green
+                                                      : primaryColor,
+                                                  elevation: 3,
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.all(
+                                                        15.0),
+                                                    child: Center(
+                                                      child: Text(
+                                                        filteredordersList[index]
+                                                                    .isPaid ==
+                                                                1
+                                                            ? "Paid"
+                                                            : "Make Payment",
+                                                        style: GoogleFonts
+                                                            .montserrat(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                color:
+                                                                    Colors.white,
+                                                                fontSize: 14),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      else
+                                        Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: Container(
+                                            width: getWidth(context),
+                                            decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(20)),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(8.0),
+                                              child: Center(
+                                                child: Text(
+                                                  "Order Cancelled",
+                                                  style: GoogleFonts.montserrat(
+                                                    color: Colors.white,
+                                                      fontSize: 16, fontWeight: FontWeight.bold),
+                                                ),
+                                              ),
+                                            ),
                                           ),
-                                        ],
-                                      )
+                                        ),
                                     ],
                                   ),
                                 ),

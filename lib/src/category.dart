@@ -1,9 +1,6 @@
-import 'package:ars_progress_dialog/dialog.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:campdavid/helpers/categorylist.dart';
 import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/helpers/productlists.dart';
-import 'package:campdavid/src/checkout.dart';
 import 'package:campdavid/src/productdetails.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
@@ -11,9 +8,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
-import '../helpers/cartmodel.dart';
 import '../helpers/categorycontroller.dart';
-import '../helpers/databaseHelper.dart';
 import '../helpers/packageslist.dart';
 
 class Category extends StatefulWidget {
@@ -23,7 +18,7 @@ class Category extends StatefulWidget {
 }
 
 class _CategoryState extends State<Category> {
-  final CategoryController ctrl1 = Get.find();
+  final ctl = Get.find<CategoryController>();
 
   @override
   void initState() {
@@ -118,7 +113,8 @@ class _CategoryState extends State<Category> {
                                                 padding:
                                                     const EdgeInsets.all(15),
                                                 decoration: BoxDecoration(
-                                                  borderRadius: BorderRadius.circular(10),
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
                                                   image: DecorationImage(
                                                     image: imageProvider,
                                                     fit: BoxFit.cover,
@@ -177,7 +173,7 @@ class _CategoryState extends State<Category> {
                         padding: const EdgeInsets.only(bottom: 170),
                         height: getHeight(context),
                         child: _.categoryList != null &&
-                                _.categoryList!.productslists.length > 0
+                                _.categoryList!.productslists.isNotEmpty
                             ? GridView.builder(
                                 gridDelegate:
                                     const SliverGridDelegateWithFixedCrossAxisCount(
@@ -189,201 +185,196 @@ class _CategoryState extends State<Category> {
                                 padding:
                                     const EdgeInsets.only(top: 8, bottom: 170),
                                 itemCount: _.categoryList!.productslists.length,
-                                itemBuilder:
-                                    (BuildContext context, int index) => Card(
-                                          shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(20)),
-                                          elevation: 3,
-                                          child: InkWell(
-                                            onTap: () {
-                                              Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        ProductDetails(
-                                                            productList: _
-                                                                    .categoryList!
-                                                                    .productslists[
-                                                                index]),
-                                                  ));
-                                            },
-                                            child: Stack(
+                                itemBuilder: (BuildContext context,
+                                        int index) =>
+                                    Card(
+                                                color: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(20)),
+                                      elevation: 3,
+                                      child: InkWell(
+                                        onTap: () {
+                                          productCtl.selectedProductList = _
+                                              .categoryList!
+                                              .productslists[index];
+                                          productCtl.update();
+
+                                          Navigator.pushReplacement(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    const ProductDetails(),
+                                              ));
+                                        },
+                                        child: Stack(
+                                          children: [
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    CachedNetworkImage(
-                                                      height: 98,
-                                                      imageUrl: imageUrl +
-                                                          _
-                                                              .categoryList!
-                                                              .productslists[
-                                                                  index]
-                                                              .photo,
-                                                      imageBuilder: (context,
-                                                              imageProvider) =>
+                                                CachedNetworkImage(
+                                                  height: 98,
+                                                  imageUrl: imageUrl +
+                                                      _
+                                                          .categoryList!
+                                                          .productslists[index]
+                                                          .photo,
+                                                  imageBuilder: (context,
+                                                          imageProvider) =>
+                                                      Container(
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              20),
+                                                      image: DecorationImage(
+                                                        image: imageProvider,
+                                                        fit: BoxFit.cover,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  progressIndicatorBuilder:
+                                                      (context, url,
+                                                              downloadProgress) =>
                                                           Container(
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          borderRadius: BorderRadius.circular(20),
-                                                          image:
-                                                              DecorationImage(
-                                                            image:
-                                                                imageProvider,
-                                                            fit: BoxFit.cover,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      progressIndicatorBuilder:
-                                                          (context, url,
-                                                                  downloadProgress) =>
-                                                              Container(
-                                                        alignment:
-                                                            Alignment.center,
-                                                        child: SizedBox(
-                                                          height: 50,
-                                                          width: 50,
-                                                          child: Center(
-                                                              child: CircularProgressIndicator(
-                                                                  color:
-                                                                      primaryColor,
-                                                                  value: downloadProgress
+                                                    alignment: Alignment.center,
+                                                    child: SizedBox(
+                                                      height: 50,
+                                                      width: 50,
+                                                      child: Center(
+                                                          child: CircularProgressIndicator(
+                                                              color:
+                                                                  primaryColor,
+                                                              value:
+                                                                  downloadProgress
                                                                       .progress)),
-                                                        ),
-                                                      ),
-                                                      errorWidget: (context,
-                                                              url, error) =>
-                                                          const Icon(
-                                                              Icons.error),
                                                     ),
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              left: 4.0),
-                                                      child: Text(
+                                                  ),
+                                                  errorWidget: (context, url,
+                                                          error) =>
+                                                      const Icon(Icons.error),
+                                                ),
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          left: 4.0),
+                                                  child: Text(
+                                                    _
+                                                        .categoryList!
+                                                        .productslists[index]
+                                                        .category
+                                                        .name,
+                                                    style:
+                                                        GoogleFonts.montserrat(
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          left: 4.0),
+                                                  child: Text(
+                                                    _
+                                                        .categoryList!
+                                                        .productslists[index]
+                                                        .name,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    maxLines: 2,
+                                                    style:
+                                                        GoogleFonts.montserrat(
+                                                            fontSize: 16,
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .bold),
+                                                  ),
+                                                ),
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          left: 4.0),
+                                                  child: Row(
+                                                    children: [
+                                                      Text(
+                                                        " Ksh",
+                                                        style: GoogleFonts
+                                                            .montserrat(
+                                                                fontSize: 12,
+                                                                color: Colors
+                                                                    .grey),
+                                                      ),
+                                                      Text(
                                                         _
                                                             .categoryList!
                                                             .productslists[
                                                                 index]
-                                                            .category
-                                                            .name,
+                                                            .sellingPrice,
                                                         style: GoogleFonts
                                                             .montserrat(
-                                                          color: Colors.grey,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              left: 4.0),
-                                                      child: Text(
-                                                        _
-                                                            .categoryList!
-                                                            .productslists[
-                                                                index]
-                                                            .name,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        maxLines: 2,
-                                                        style: GoogleFonts
-                                                            .montserrat(
-                                                                fontSize: 16,
+                                                                fontSize: 18,
+                                                                color:
+                                                                    primaryColor,
                                                                 fontWeight:
                                                                     FontWeight
                                                                         .bold),
                                                       ),
+                                                      // const Spacer(),
+                                                    ],
+                                                  ),
+                                                ),
+                                                const Spacer(),
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(8.0)
+                                                          .copyWith(bottom: 0),
+                                                  child: Card(
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
+                                                      side: const BorderSide(
+                                                          color: Colors.black),
                                                     ),
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              left: 4.0),
-                                                      child: Row(
-                                                        children: [
-                                                          Text(
-                                                            " Ksh",
-                                                            style: GoogleFonts
-                                                                .montserrat(
-                                                                    fontSize:
-                                                                        12,
-                                                                    color: Colors
-                                                                        .grey),
-                                                          ),
-                                                          Text(
-                                                            _
+                                                    color: _.cartproducts.contains(_
+                                                                .categoryList!
+                                                                .productslists[
+                                                            index])
+                                                        ? primaryColor
+                                                        : Colors.white,
+                                                    elevation: 3,
+                                                    child: InkWell(
+                                                      onTap: () {
+                                                        if (_
                                                                 .categoryList!
                                                                 .productslists[
                                                                     index]
-                                                                .sellingPrice,
+                                                                .stock <
+                                                            1) {
+                                                          _.showToast(
+                                                              "Failed. The product is out of stock.",
+                                                              Colors.red);
+                                                        } else {
+                                                          _.updateclickItems(_
+                                                                  .categoryList!
+                                                                  .productslists[
+                                                              index]);
+                                                          showDialog(_
+                                                                  .categoryList!
+                                                                  .productslists[
+                                                              index]);
+                                                        }
+                                                      },
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(8.0),
+                                                        child: Center(
+                                                          child: Text(
+                                                            " Add to Cart",
                                                             style: GoogleFonts
                                                                 .montserrat(
-                                                                    fontSize:
-                                                                        18,
-                                                                    color:
-                                                                        primaryColor,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold),
-                                                          ),
-                                                          // const Spacer(),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    const Spacer(),
-                                                    Padding(
-                                                      padding: const EdgeInsets
-                                                              .all(8.0)
-                                                          .copyWith(bottom: 0),
-                                                      child: Card(
-                                                        shape:
-                                                            RoundedRectangleBorder(
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(10),
-                                                          side:
-                                                              const BorderSide(
-                                                                  color: Colors
-                                                                      .black),
-                                                        ),
-                                                        color: _.cartproducts
-                                                                .contains(_
-                                                                    .categoryList!
-                                                                    .productslists[index])
-                                                            ? primaryColor
-                                                            : Colors.white,
-                                                        elevation: 3,
-                                                        child: InkWell(
-                                                          onTap: () {
-                                                            if (_
-                                                                    .categoryList!
-                                                                    .productslists[
-                                                                        index]
-                                                                    .stock <
-                                                                1) {
-                                                              _.showToast(
-                                                                  "Failed. The product is out of stock.",
-                                                                  Colors.red);
-                                                            } else {
-                                                              _.updateclickItems(_
-                                                                    .categoryList!
-                                                                    .productslists[
-                                                                        index]);
-                                                              showDialog(_.categoryList!
-                                                                    .productslists[
-                                                                        index]);
-                                                              
-                                                            }
-                                                          },
-                                                          child: Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(8.0),
-                                                            child: Center(
-                                                              child: Text(
-                                                                " Add to Cart",
-                                                                style: GoogleFonts.montserrat(
                                                                     fontSize:
                                                                         14,
                                                                     color: Colors
@@ -391,63 +382,60 @@ class _CategoryState extends State<Category> {
                                                                     fontWeight:
                                                                         FontWeight
                                                                             .bold),
-                                                              ),
-                                                            ),
                                                           ),
                                                         ),
                                                       ),
                                                     ),
-                                                    const SizedBox(
-                                                      height: 4,
-                                                    ),
-                                                  ],
-                                                ),
-                                                if (_
-                                                        .categoryList!
-                                                        .productslists[index]
-                                                        .stock <
-                                                    1)
-                                                  Positioned(
-                                                    top: 0,
-                                                    right: 0,
-                                                    child: Container(
-                                                      decoration: BoxDecoration(
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                      .only(
-                                                                  topLeft: Radius
-                                                                      .circular(
-                                                                          8),
-                                                                  topRight: Radius
-                                                                      .circular(
-                                                                          10),
-                                                                  bottomLeft: Radius
-                                                                      .circular(
-                                                                          8)),
-                                                          color: Colors
-                                                              .grey.shade400),
-                                                      child: Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(4.0),
-                                                        child: Text(
-                                                          " Out of Stock",
-                                                          style: GoogleFonts
-                                                              .montserrat(
-                                                                  fontSize: 10,
-                                                                  color:
-                                                                      primaryColor,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold),
-                                                        ),
-                                                      ),
-                                                    ),
                                                   ),
+                                                ),
+                                                const SizedBox(
+                                                  height: 4,
+                                                ),
                                               ],
                                             ),
-                                          ),
-                                        ))
+                                            if (_
+                                                    .categoryList!
+                                                    .productslists[index]
+                                                    .stock <
+                                                1)
+                                              Positioned(
+                                                top: 0,
+                                                right: 0,
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          const BorderRadius
+                                                                  .only(
+                                                              topLeft: Radius
+                                                                  .circular(8),
+                                                              topRight: Radius
+                                                                  .circular(10),
+                                                              bottomLeft: Radius
+                                                                  .circular(8)),
+                                                      color:
+                                                          Colors.grey.shade400),
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            4.0),
+                                                    child: Text(
+                                                      " Out of Stock",
+                                                      style: GoogleFonts
+                                                          .montserrat(
+                                                              fontSize: 10,
+                                                              color:
+                                                                  primaryColor,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ))
                             : _.loading
                                 ? const SizedBox(
                                     height: 60,
@@ -487,9 +475,9 @@ class _CategoryState extends State<Category> {
       builder: (BuildContext context) {
         return GetBuilder<CategoryController>(
             builder: (_) => Padding(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom),
-              child: Container(
+                  padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom),
+                  child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(
                       color: Colors.white,
@@ -572,8 +560,9 @@ class _CategoryState extends State<Category> {
                                                 }
                                               },
                                               child: const Card(
-                                                child: Icon(
-                                                    Icons.remove_circle_outline),
+                                                color: Colors.white,
+                                                child: Icon(Icons
+                                                    .remove_circle_outline),
                                               ),
                                             ),
                                             const SizedBox(
@@ -622,6 +611,7 @@ class _CategoryState extends State<Category> {
                                                 }
                                               },
                                               child: const Card(
+                                                color: Colors.white,
                                                 child: Icon(Icons
                                                     .add_circle_outline_sharp),
                                               ),
@@ -686,22 +676,25 @@ class _CategoryState extends State<Category> {
                                               )),
                                               InkWell(
                                                 onTap: () {
-                                                  if (product.tags[ind].quantity >
+                                                  if (product
+                                                          .tags[ind].quantity >
                                                       double.parse(product
                                                           .minimumQuantity)) {
-                                                    product.tags[ind].quantity--;
-                                                    product.tags[ind].isselected =
-                                                        true;
+                                                    product
+                                                        .tags[ind].quantity--;
+                                                    product.tags[ind]
+                                                        .isselected = true;
                                                     _.update();
                                                   } else {
                                                     product.tags[ind].quantity =
                                                         0;
-                                                    product.tags[ind].isselected =
-                                                        false;
+                                                    product.tags[ind]
+                                                        .isselected = false;
                                                     _.update();
                                                   }
                                                 },
                                                 child: const Card(
+                                                color: Colors.white,
                                                   child: Icon(Icons
                                                       .remove_circle_outline),
                                                 ),
@@ -718,25 +711,27 @@ class _CategoryState extends State<Category> {
                                                 style: GoogleFonts.montserrat(
                                                     fontSize: 16,
                                                     color: primaryColor,
-                                                    fontWeight: FontWeight.bold),
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                               ),
                                               const SizedBox(
                                                 width: 4,
                                               ),
                                               InkWell(
                                                 onTap: () {
-                                                  if (product
-                                                          .tags[ind].isselected ==
+                                                  if (product.tags[ind]
+                                                          .isselected ==
                                                       false) {
                                                     product.tags[ind].quantity =
                                                         double.parse(product
                                                             .minimumQuantity);
-                                                    product.tags[ind].isselected =
-                                                        true;
+                                                    product.tags[ind]
+                                                        .isselected = true;
                                                   } else {
-                                                    if (product.tags[ind].stock <=
-                                                        product
-                                                            .tags[ind].quantity) {
+                                                    if (product
+                                                            .tags[ind].stock <=
+                                                        product.tags[ind]
+                                                            .quantity) {
                                                     } else {
                                                       product.tags[ind]
                                                           .isselected = true;
@@ -747,6 +742,7 @@ class _CategoryState extends State<Category> {
                                                   // }
                                                 },
                                                 child: const Card(
+                                                color: Colors.white,
                                                   child: Icon(Icons
                                                       .add_circle_outline_sharp),
                                                 ),
@@ -757,7 +753,8 @@ class _CategoryState extends State<Category> {
                                             children: [
                                               Expanded(
                                                 child: Text(
-                                                  product.tags[ind].isselected ==
+                                                  product.tags[ind]
+                                                              .isselected ==
                                                           false
                                                       ? "Ksh ${product.tags[ind].price}"
                                                       : " ${product.tags[ind].quantity} * ${product.tags[ind].price}",
@@ -777,7 +774,7 @@ class _CategoryState extends State<Category> {
                                               ),
                                             ],
                                           ),
-            
+
                                           // .......................
                                         ],
                                       ),
@@ -811,6 +808,7 @@ class _CategoryState extends State<Category> {
                                         .copyWith(top: 10),
                                     child: Row(
                                       children: [
+                                        
                                         Expanded(
                                           child: Text(
                                             "Specify Amount (Minimum Ksh ${product.minimumPrice})",
@@ -859,9 +857,11 @@ class _CategoryState extends State<Category> {
                                             child: TextFormField(
                                                 onChanged: (value) {
                                                   if (value.isNotEmpty) {
-                                                    if (int.parse(value.trim()) >
+                                                    if (int.parse(
+                                                                value.trim()) >
                                                             500 &&
-                                                        int.parse(value.trim()) <
+                                                        int.parse(
+                                                                value.trim()) <
                                                             300000) {}
                                                   }
                                                 },
@@ -880,7 +880,8 @@ class _CategoryState extends State<Category> {
                                                     labelStyle:
                                                         GoogleFonts.montserrat(
                                                             fontSize: 12,
-                                                            color: Colors.black),
+                                                            color:
+                                                                Colors.black),
                                                     border: InputBorder.none,
                                                     hintStyle: GoogleFonts.lato(
                                                         fontSize: 14,
@@ -888,10 +889,11 @@ class _CategoryState extends State<Category> {
                                                 style: GoogleFonts.lato(
                                                     fontSize: 14,
                                                     color: Colors.black,
-                                                    fontWeight: FontWeight.bold)),
+                                                    fontWeight:
+                                                        FontWeight.bold)),
                                           ),
                                         ),
-                                        
+
                                         // InkWell(
                                         //   onTap: () {},
                                         //   child: Container(
@@ -920,7 +922,7 @@ class _CategoryState extends State<Category> {
                                       ],
                                     ),
                                   ),
-            
+
                                 const SizedBox(
                                   height: 10,
                                 ),
@@ -935,7 +937,7 @@ class _CategoryState extends State<Category> {
                                       ),
                                     ),
                                   ),
-                                if (product.category.packagingsList.length > 0)
+                                if (product.category.packagingsList.isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.all(8.0),
                                     child: SizedBox(
@@ -979,7 +981,7 @@ class _CategoryState extends State<Category> {
                                           _.selectedPackage =
                                               value as PackageList;
                                           _.update();
-            
+
                                           //Do something when changing the item if you want.
                                         },
                                         onSaved: (value) {
@@ -1013,13 +1015,12 @@ class _CategoryState extends State<Category> {
                             ),
                           ),
                         ),
-            
+
                         const Spacer(),
-            
+
                         InkWell(
                           onTap: () {
                             _.addCart(product, "checkout", context);
-            
                           },
                           child: Card(
                             shape: RoundedRectangleBorder(
@@ -1069,10 +1070,8 @@ class _CategoryState extends State<Category> {
                       ],
                     ),
                   ),
-            ));
+                ));
       },
     );
   }
-
-
 }

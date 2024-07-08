@@ -24,7 +24,6 @@ class NotificationHelper {
     });
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       try {
-        print("ziiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii");
       } catch (e) {}
     });
   }

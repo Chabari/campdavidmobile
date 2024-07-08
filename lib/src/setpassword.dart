@@ -1,13 +1,11 @@
 import 'dart:convert';
 
-import 'package:ars_progress_dialog/dialog.dart';
 import 'package:campdavid/helpers/constants.dart';
-import 'package:campdavid/src/entercode.dart';
 import 'package:campdavid/src/login.dart';
-import 'package:campdavid/src/mainpanel.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -20,7 +18,7 @@ class SetPassword extends StatefulWidget {
 class _SetPasswordState extends State<SetPassword> {
   final _cpassCOntroller = TextEditingController();
   final _passwordCOntroller = TextEditingController();
-  late ArsProgressDialog progressDialog;
+  late ProgressDialog progressDialog;
   late SharedPreferences mprefs;
   late FToast fToast;
 
@@ -29,10 +27,9 @@ class _SetPasswordState extends State<SetPassword> {
     super.initState();
     fToast = FToast();
     fToast.init(context);
-    progressDialog = ArsProgressDialog(context,
-        blur: 2,
-        backgroundColor: const Color(0x33000000),
-        animationDuration: const Duration(milliseconds: 500));
+   
+    progressDialog = ProgressDialog(context,
+        type: ProgressDialogType.normal, isDismissible: true, showLogs: false);
   }
 
   _showToast(fToast, message, color, icon) {
@@ -76,10 +73,9 @@ class _SetPasswordState extends State<SetPassword> {
   void validateSubmit() async {
     if (_passwordCOntroller.text.isNotEmpty &&
         _cpassCOntroller.text == _passwordCOntroller.text) {
-      progressDialog.show();
+      await progressDialog.show();
       var data = {'phone': widget.phone, 'password': _passwordCOntroller.text};
       var body = json.encode(data);
-      print(body);
       var response = await http.post(Uri.parse("${mainUrl}setPassword"),
           headers: {
             "Content-Type": "application/json",
@@ -87,11 +83,10 @@ class _SetPasswordState extends State<SetPassword> {
           },
           body: body);
 
-      print(response.body);
 
       Map<String, dynamic> json1 = json.decode(response.body);
       if (response.statusCode == 200) {
-        progressDialog.dismiss();
+        await progressDialog.hide();
         if (json1['success'] == "1") {
           if (mounted) {
             _showToast(fToast, json1['message'], Colors.green, Icons.check);
@@ -183,6 +178,7 @@ class _SetPasswordState extends State<SetPassword> {
                   ),
                 ),
                 Card(
+                                                color: Colors.white,
                   margin: const EdgeInsets.all(10).copyWith(top: 5),
                   elevation: 3,
                   shape: RoundedRectangleBorder(
@@ -226,6 +222,7 @@ class _SetPasswordState extends State<SetPassword> {
                   ),
                 ),
                 Card(
+                                                color: Colors.white,
                   margin: const EdgeInsets.all(10).copyWith(top: 5),
                   elevation: 3,
                   shape: RoundedRectangleBorder(

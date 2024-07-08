@@ -7,8 +7,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:progress_dialog/progress_dialog.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -30,14 +30,16 @@ class _PhoneVerificationState extends State<PhoneVerification> {
   var _deviceToken;
   late FToast fToast;
 
-  late ProgressDialog pr;
+  late ProgressDialog progressDialog;
   late SharedPreferences mprefs;
   @override
   void initState() {
     super.initState();
     fToast = FToast();
     fToast.init(context);
-    pr = ProgressDialog(context);
+    
+    progressDialog = ProgressDialog(context,
+        type: ProgressDialogType.normal, isDismissible: true, showLogs: false);
     errorController = StreamController<ErrorAnimationType>();
 
     SharedPreferences.getInstance().then((value) {
@@ -53,7 +55,7 @@ class _PhoneVerificationState extends State<PhoneVerification> {
   }
 
   void validatephone() async {
-    pr.show();
+    await progressDialog.show();
 
     var data = {'code': textEditingController.text};
     var body = json.encode(data);
@@ -66,7 +68,7 @@ class _PhoneVerificationState extends State<PhoneVerification> {
 
     Map<String, dynamic> json1 = json.decode(response.body);
     if (response.statusCode == 200) {
-      pr.hide();
+      await progressDialog.hide();
       if (json1['success'] == "1") {
         if (mounted) {
           _showToast(fToast, json1['message'], Colors.green, Icons.check);
@@ -121,7 +123,7 @@ class _PhoneVerificationState extends State<PhoneVerification> {
   }
 
   void validateresend() async {
-    pr.show();
+   await progressDialog.show();
     var data = {'phone': widget.phone};
     var body = json.encode(data);
     var response = await http.post(Uri.parse("${mainUrl}sendVerification"),
@@ -133,7 +135,7 @@ class _PhoneVerificationState extends State<PhoneVerification> {
 
     Map<String, dynamic> json1 = json.decode(response.body);
     if (response.statusCode == 200) {
-      pr.hide();
+     await progressDialog.hide();
       if (json1['success'] == "1") {
         if (mounted) {
           _showToast(fToast, json1['message'], Colors.green, Icons.check);
@@ -253,13 +255,11 @@ class _PhoneVerificationState extends State<PhoneVerification> {
                 //   print("Pressed");
                 // },
                 onChanged: (value) {
-                  print(value);
                   setState(() {
                     // currentText = value;
                   });
                 },
                 beforeTextPaste: (text) {
-                  print("Allowing to paste $text");
                   return true;
                 },
               ),

@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:ars_progress_dialog/dialog.dart';
 import 'package:campdavid/helpers/constants.dart';
 import 'package:campdavid/src/checkout.dart';
 import 'package:campdavid/src/mainpanel.dart';
@@ -11,6 +10,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _phoneCOntroller = TextEditingController();
   final _passwordCOntroller = TextEditingController();
   bool obscure = true;
-  late ArsProgressDialog progressDialog;
+  late ProgressDialog progressDialog;
   late FToast fToast;
   var _deviceToken;
   final _formKey = GlobalKey<FormState>();
@@ -38,10 +38,9 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     fToast = FToast();
     fToast.init(context);
-    progressDialog = ArsProgressDialog(context,
-        blur: 2,
-        backgroundColor: const Color(0x33000000),
-        animationDuration: const Duration(milliseconds: 500));
+
+    progressDialog = ProgressDialog(context,
+        type: ProgressDialogType.normal, isDismissible: true, showLogs: false);
 
     // SharedPreferences.getInstance().then((value) {
     //   if (value.getString('token') != null) {
@@ -56,16 +55,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void validateSubmit() async {
     var formstate = _formKey.currentState;
-        _deviceToken = await FirebaseMessaging.instance.getToken();
+    _deviceToken = await FirebaseMessaging.instance.getToken();
     if (formstate!.validate()) {
-      progressDialog.show();
+      await progressDialog.show();
       var data = {
         'password': _passwordCOntroller.text,
         'phone': _phoneCOntroller.text,
         'token': _deviceToken
       };
       var body = json.encode(data);
-      print(body);
       var response = await http.post(Uri.parse("${mainUrl}user-signin"),
           headers: {
             "Content-Type": "application/json",
@@ -76,11 +74,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Map<String, dynamic> json1 = json.decode(response.body);
       if (response.statusCode == 200) {
-        progressDialog.dismiss();
+        await progressDialog.hide();
         if (json1['success'] == "1") {
           Map<String, dynamic> user = json1['user'];
           setState(() {
             mpref.setString("token", json1['token']);
+            if (json1['kGoogleApiKey'] != null) {
+              kGoogleApiKey = json1['kGoogleApiKey'];
+            }
             mpref.setString(
                 "name", user['first_name'] + " " + user['last_name']);
             mpref.setString("user_id", user['id'].toString());
@@ -88,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
             mpref.setString("call_phone", json1['call_phone']);
             mpref.setString("support_email", json1['support_email']);
             mpref.setString("orders", json1['orders'].toString());
-          mpref.setString("paybill", json1['paybill']);
+            mpref.setString("paybill", json1['paybill']);
             mpref.setBool('isFirst', false);
           });
           if (mounted) {
@@ -108,21 +109,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 ));
           }
         } else if (json1['success'] == "2") {
-          _onAlertButtonsPressed(
-            context,
-            json1['message']
-          );
+          _onAlertButtonsPressed(context, json1['message']);
         } else {
           showtoast(json1['message'], Colors.red);
         }
       } else {
-        progressDialog.dismiss();
+        await progressDialog.hide();
         showtoast(json1['message'], Colors.red);
       }
     }
   }
 
-  void showtoast(message, Color color){
+  void showtoast(message, Color color) {
     Fluttertoast.showToast(
         msg: message,
         toastLength: Toast.LENGTH_SHORT,
@@ -130,11 +128,8 @@ class _LoginScreenState extends State<LoginScreen> {
         timeInSecForIosWeb: 1,
         backgroundColor: color,
         textColor: Colors.white,
-        fontSize: 16.0
-    );
+        fontSize: 16.0);
   }
-
-
 
   _onAlertButtonsPressed(context, message) {
     Alert(
@@ -167,7 +162,8 @@ class _LoginScreenState extends State<LoginScreen> {
             Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => SetPassword(phone: _phoneCOntroller.text),
+                  builder: (context) =>
+                      SetPassword(phone: _phoneCOntroller.text),
                 ));
           },
           gradient: const LinearGradient(colors: [
@@ -177,6 +173,8 @@ class _LoginScreenState extends State<LoginScreen> {
         )
       ],
     ).show();
+  
+  
   }
 
   _showToast(fToast, message, color, icon) {
@@ -280,6 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   Card(
+                                                color: Colors.white,
                     margin: const EdgeInsets.all(10).copyWith(top: 5),
                     elevation: 3,
                     shape: RoundedRectangleBorder(
@@ -328,6 +327,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   Card(
+                                                color: Colors.white,
                     margin: const EdgeInsets.all(10).copyWith(top: 5),
                     elevation: 3,
                     shape: RoundedRectangleBorder(

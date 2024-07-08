@@ -20,6 +20,7 @@ class OrderList {
       required this.isPaid,
       required this.total,
       required this.createdAt,
+      required this.totalReturned,
       required this.updatedAt,
       required this.longitude,
       required this.driver,
@@ -29,6 +30,8 @@ class OrderList {
       required this.order_amount,
       required this.seller,
       required this.orderItems,
+      required this.cancel_reason,
+      required this.cancelled,
       required this.numberPlate,
       required this.friendName,
       required this.friendPhone,
@@ -57,10 +60,13 @@ class OrderList {
   String customer_code;
   String latitude;
   String seller;
+  int cancelled;
+  String cancel_reason;
   int isPaid;
   String driver_photo;
   String driver_phone;
   String total;
+  String totalReturned;
   DateTime createdAt;
   String numberPlate;
   DateTime updatedAt;
@@ -73,34 +79,37 @@ class OrderList {
   factory OrderList.fromJson(Map<String, dynamic> json) => OrderList(
         id: json["id"],
         orderNumber: json["order_number"],
-        notes: json["notes"],
-        customer_phone: json['customer_phone'],
+        cancelled: json["cancelled"] ?? 0,
+        cancel_reason: json["cancel_reason"] ?? "none",
+        notes: json["notes"] ?? "none",
+        customer_phone: json['customer_phone'] ?? "none",
         friendName: json['friend_name'] ?? "none",
         friendPhone: json['friend_phone'] ?? "none",
-        customer_code: json['customer_code'],
-        deliveryLocation: json["delivery_location"],
-        landmark: json["landmark"],
-        isPickup: json['isPickup'],
-        paymentMethod: json["payment_method"],
-        pickup_time: json['pickup_time'],
-        deliveryFee: json["delivery_fee"],
+        totalReturned: json['total_returned'] ?? "0",
+        customer_code: json['customer_code'] ?? "none",
+        deliveryLocation: json["delivery_location"] ?? "none",
+        landmark: json["landmark"] ?? "none",
+        isPickup: json['isPickup'] ?? 0,
+        paymentMethod: json["payment_method"] ?? "none",
+        pickup_time: json['pickup_time'] ?? "none",
+        deliveryFee: json["delivery_fee"] ?? "0",
         order_amount: json['order_amount'].toString(),
-        status: json["status"],
-        numberPlate: json['driver_plate'],
-        seller: json['seller'],
-        driver_photo: json['driver_photo'],
-        driver: json['driver'],
-        isPaid: json["isPaid"],
-        driver_phone: json['driver_phone'],
-        driver_latitude: json['driver_longitude'],
-        driver_longitude: json['driver_longitude'],
-        latitude: json["latitude"],
-        longitude: json["longitude"],
+        status: json["status"] ?? "none",
+        numberPlate: json['driver_plate'] ?? "none",
+        seller: json['seller'] ?? "none",
+        driver_photo: json['driver_photo'] ?? "none",
+        driver: json['driver']  ?? "none",
+        isPaid: json["isPaid"] ?? 0,
+        driver_phone: json['driver_phone'] ?? "none",
+        driver_latitude: json['driver_longitude'] ?? "0.0",
+        driver_longitude: json['driver_longitude'] ?? "0.0",
+        latitude: json["latitude"] ?? "0.0",
+        longitude: json["longitude"] ?? "0.0",
         total: json["total"],
         createdAt: DateTime.parse(json["created_at"]),
         updatedAt: DateTime.parse(json["updated_at"]),
-        orderItems: List<OrderItem>.from(
-            json["order_items"].map((x) => OrderItem.fromJson(x))),
+        orderItems: json["order_items"] != null ? List<OrderItem>.from(
+            json["order_items"].map((x) => OrderItem.fromJson(x))) : [],
       );
 }
 
@@ -115,6 +124,7 @@ class OrderItem {
     required this.createdAt,
     required this.weight,
     required this.updatedAt,
+    required this.totalReturned,
     required this.product,
     required this.item,
     required this.category,
@@ -127,6 +137,7 @@ class OrderItem {
   String weight;
   String unitId;
   String item;
+  String totalReturned;
   String category;
   String sellPrice;
   DateTime createdAt;
@@ -138,6 +149,7 @@ class OrderItem {
         orderId: json["order_id"],
         productId: json["product_id"],
         quantity: json["quantity"],
+        totalReturned: json["total_returned"],
         unitId: json["unit_id"],
         weight: json['weight'],
         item: json['item'],
@@ -192,12 +204,12 @@ class Product {
         id: json["id"],
         name: json["name"],
         categoryId: json["category_id"],
-        unitId: json["unit_id"],
-        sku: json["sku"],
-        unitShort: json['unit_short'],
-        photo: json["photo"],
-        purchasePrice: json["purchase_price"],
-        description: json["description"],
+        unitId: json["unit_id"] ?? "none",
+        sku: json["sku"] ?? "none",
+        unitShort: json['unit_short'] ?? "Pcs",
+        photo: json["photo"] ?? "none",
+        purchasePrice: json["purchase_price"] ?? "0",
+        description: json["description"] ?? "none",
         sellingPrice: json["selling_price"],
         currentStock: json["current_stock"],
       );
